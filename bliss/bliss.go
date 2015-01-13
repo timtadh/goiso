@@ -31,6 +31,8 @@ hook(void *user_param, unsigned int N, const unsigned int *aut) {
 */
 import "C"
 
+import "unsafe"
+
 type BlissGraph C.struct_bliss_graph_struct
 
 // A context manager which release the graph after the block
@@ -116,8 +118,7 @@ func (a *BlissGraph) Iso(b *BlissGraph) bool {
 func (g *BlissGraph) Canonical() *BlissGraph {
 	var stats C.struct_bliss_stats_struct
 	G := (*C.struct_bliss_graph_struct)(g)
-	p := C.bliss_find_canonical_labeling(
-		G, (*[0]byte)(C.hook), nil, &stats)
+	p := C.bliss_find_canonical_labeling(G, (*[0]byte)(C.hook), nil, &stats)
 	return (*BlissGraph)(C.bliss_permute(G, p))
 }
 
@@ -126,5 +127,23 @@ func (g *BlissGraph) CanonicalCtx(block func(*BlissGraph)) {
 	can := g.Canonical()
 	defer can.Release()
 	block(can)
+}
+
+// Compute the permutation. Returns a slice of new indexes. Read the slice as:
+// mapping[original-index-for-v] -> new-index-for-v
+// If you want to preserve the orginal vertex id's or know how the canonical
+// labeling actually maps to the original graph you need to use this method.
+func (g *BlissGraph) CanonicalPermutation() (mapping []uint) {
+	var stats C.struct_bliss_stats_struct
+	G := (*C.struct_bliss_graph_struct)(g)
+	N := uint(C.bliss_get_nof_vertices(G))
+	p := C.bliss_find_canonical_labeling(G, (*[0]byte)(C.hook), nil, &stats)
+	mapping = make([]uint, 0, N)
+	for i := uint(0); i < N; i++ {
+		ptr := (uintptr(unsafe.Pointer(p)) + uintptr(i)*4)
+		var idx uint = uint(*(*C.uint)(unsafe.Pointer(ptr)))
+		mapping = append(mapping, idx)
+	}
+	return mapping
 }
 

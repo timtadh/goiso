@@ -20,6 +20,8 @@ package bliss
 
 import "testing"
 
+import "reflect"
+
 func TestNew(t *testing.T) {
 	Graph(0, func(g *BlissGraph) {
 		a := g.AddVertex(1)
@@ -30,6 +32,24 @@ func TestNew(t *testing.T) {
 		g.AddEdge(c, d)
 		g.AddEdge(a, c)
 		g.AddEdge(b, d)
+	})
+}
+
+func TestPermutation(t *testing.T) {
+	Graph(0, func(g *BlissGraph) {
+		a := g.AddVertex(1)
+		b := g.AddVertex(1)
+		c := g.AddVertex(2)
+		d := g.AddVertex(2)
+		g.AddEdge(a, b)
+		g.AddEdge(c, d)
+		g.AddEdge(a, c)
+		g.AddEdge(b, d)
+		p := g.CanonicalPermutation()
+		e := []uint{1, 0, 3, 2}
+		if !reflect.DeepEqual(p, e) {
+			t.Errorf("Expected %v got %v", e, p)
+		}
 	})
 }
 
