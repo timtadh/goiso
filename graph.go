@@ -22,6 +22,7 @@ package goiso
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 import (
@@ -55,6 +56,14 @@ type Vertex struct {
 	Color int
 }
 
+func (v *Vertex) Copy(idx int) Vertex {
+	return Vertex{
+		Idx: idx,
+		Id: v.Id,
+		Color: v.Color,
+	}
+}
+
 type Arc struct {
 	Src, Targ int
 }
@@ -63,6 +72,17 @@ type Edge struct {
 	Arc
 	Idx int
 	Color int
+}
+
+func (e *Edge) Copy(idx, src, targ int) Edge {
+	return Edge{
+		Arc: Arc{
+			Src: src,
+			Targ: targ,
+		},
+		Idx: idx,
+		Color: e.Color,
+	}
 }
 
 type perm struct {
@@ -83,6 +103,63 @@ func NewGraph(V, E int) Graph {
 		Colors: make([]string, 0, V),
 		colorSet: make(map[string]int),
 	}
+}
+
+func safe_label(label string) string {
+	label = strings.Replace(label, ":", "\\:", -1)
+	label = strings.Replace(label, "(", "\\(", -1)
+	label = strings.Replace(label, ")", "\\)", -1)
+	label = strings.Replace(label, "[", "\\[", -1)
+	label = strings.Replace(label, "]", "\\]", -1)
+	label = strings.Replace(label, "->", "\\-\\>", -1)
+	return label
+}
+
+func (g *Graph) Label() string {
+	V := make([]string, 0, len(g.V))
+	E := make([]string, 0, len(g.E))
+	for _, v := range g.V {
+		V = append(V, fmt.Sprintf(
+			"(%v:%v)",
+			v.Idx,
+			safe_label(g.Colors[v.Color]),
+		))
+	}
+	for _, e := range g.E {
+		E = append(E, fmt.Sprintf(
+			"[%v->%v:%v]",
+			e.Src,
+			e.Targ,
+			safe_label(g.Colors[e.Color]),
+		))
+	}
+	return fmt.Sprintf("%v%v", strings.Join(V, ""), strings.Join(E, ""))
+}
+
+func (g *Graph) String() string {
+	V := make([]string, 0, len(g.V))
+	E := make([]string, 0, len(g.E))
+	for _, v := range g.V {
+		V = append(V, fmt.Sprintf(
+			"%v [label=\"%v\"];",
+			v.Id,
+			g.Colors[v.Color],
+		))
+	}
+	for _, e := range g.E {
+		E = append(E, fmt.Sprintf(
+			"%v -> %v [label=\"%v\"];",
+			g.V[e.Src].Id,
+			g.V[e.Targ].Id,
+			g.Colors[e.Color],
+		))
+	}
+	return fmt.Sprintf(
+`digraph {
+    %v
+    %v
+}
+`, strings.Join(V, "\n    "), strings.Join(E, "\n    "))
 }
 
 func (g *Graph) Finalize() {
@@ -115,6 +192,33 @@ func (g *Graph) Finalize() {
 	g.blissMap = &blissMap{V, E}
 }
 
+func (g *Graph) Canonical() Graph {
+	ng := Graph{
+		V: make([]Vertex, len(g.V)),
+		E: make([]Edge, len(g.E)),
+		kids: make([][]*Edge, len(g.kids)),
+		Colors: make([]string, len(g.Colors)),
+		colorSet: make(map[string]int),
+	}
+	copy(ng.Colors, g.Colors)
+	for cid, color := range ng.Colors {
+		ng.colorSet[color] = cid
+	}
+	for i := range ng.kids {
+		ng.kids[i] = make([]*Edge, 0, 5)
+	}
+	vord, eord := g.CanonicalPermutation()
+	// i is the old vid, j is the new vid
+	for i, j := range vord {
+		ng.V[j] = g.V[i].Copy(j)
+	}
+	for i, j := range eord {
+		ng.E[j] = g.E[i].Copy(j, vord[g.E[i].Src], vord[g.E[i].Targ])
+		ng.kids[vord[g.E[i].Src]] = append(ng.kids[vord[g.E[i].Src]], &ng.E[j])
+	}
+	return ng
+}
+
 func (g *Graph) CanonicalPermutation() (Vord, Eord []int) {
 	if !g.closed {
 		g.Finalize()
@@ -122,7 +226,6 @@ func (g *Graph) CanonicalPermutation() (Vord, Eord []int) {
 	bg := g.blissGraph()
 	defer bg.Release()
 	P := bg.CanonicalPermutation()
-	fmt.Println(P)
 	VP := make(perms, 0, len(g.V))
 	EP := make(perms, 0, len(g.E))
 	for i, p := range P {

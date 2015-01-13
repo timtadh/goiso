@@ -31,9 +31,27 @@ func TestHello(t *testing.T) {
 	g.AddEdge(c, d, "purple")
 	g.AddEdge(a, c, "purple")
 	g.AddEdge(b, d, "purple")
-	vord, eord := g.CanonicalPermutation()
-	t.Log(vord)
-	t.Log(eord)
-	t.Fatal("fail")
+
+	g2 := NewGraph(4, 4)
+	w := g2.AddVertex(12, "blue")
+	x := g2.AddVertex(7, "blue")
+	y := g2.AddVertex(57, "green")
+	z := g2.AddVertex(9, "green")
+	g2.AddEdge(x, w, "purple")
+	g2.AddEdge(z, y, "purple")
+	g2.AddEdge(w, y, "purple")
+	g2.AddEdge(x, z, "purple")
+
+	can := g.Canonical()
+	can2 := g2.Canonical()
+	e := []int{7, 12, 9, 57}
+	for i, vid := range e {
+		if can.V[i].Id != vid {
+			t.Error("canonical was incorrect")
+		}
+	}
+	if can.Label() != can2.Label() {
+		t.Error("graphs should have been equal")
+	}
 }
 
