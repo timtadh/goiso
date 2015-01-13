@@ -117,7 +117,10 @@ func NewGraph(V, E int) Graph {
 // Construct a subgraph. The vids are the vertices you are including.
 // The filter_edges, are the edge labels you would like to ignore (can
 // be nil). Note: these are the indexes into V not the vertex Ids. Also
-// note: this subgraph will always be canonicalized!
+// note: this subgraph will always be canonicalized! Finally: the Ids in
+// the vertex will be not be the original Id on the graph but rather the
+// Idx to the vertex on the original graph. This allows you to easily
+// recover the embedding.
 func (g *Graph) SubGraph(vids []int, filtered_edges map[string]bool) *SubGraph {
 	V := g.find_vertices(vids)
 	E := g.find_edges(vids, &V, filtered_edges)
@@ -128,7 +131,9 @@ func (g *Graph) SubGraph(vids []int, filtered_edges map[string]bool) *SubGraph {
 func (g *Graph) find_vertices(vids []int) []Vertex {
 	V := make([]Vertex, 0, len(vids))
 	for i, vid := range vids {
-		V = append(V, g.V[vid].Copy(i))
+		v := g.V[vid].Copy(i)
+		v.Id = vid
+		V = append(V, v)
 	}
 	return V
 }
