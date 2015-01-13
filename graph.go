@@ -36,6 +36,7 @@ type Graph struct {
 	Colors []string
 	colorSet map[string]int
 	closed bool
+	canon bool
 	blissMap *blissMap
 }
 
@@ -95,6 +96,7 @@ func (self perms) Len() int           { return len(self) }
 func (self perms) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
 func (self perms) Less(i, j int) bool { return self[i].p < self[j].p }
 
+// Construct a new graph with V vertices and E edges.
 func NewGraph(V, E int) Graph {
 	return Graph{
 		V: make([]Vertex, 0, V),
@@ -115,6 +117,8 @@ func safe_label(label string) string {
 	return label
 }
 
+// This is a short string useful as a unique (after canonicalization)
+// label for the graph.
 func (g *Graph) Label() string {
 	V := make([]string, 0, len(g.V))
 	E := make([]string, 0, len(g.E))
@@ -136,6 +140,8 @@ func (g *Graph) Label() string {
 	return fmt.Sprintf("%v%v", strings.Join(V, ""), strings.Join(E, ""))
 }
 
+// Stringifies the graph. This produces a String in the graphviz dot
+// language.
 func (g *Graph) String() string {
 	V := make([]string, 0, len(g.V))
 	E := make([]string, 0, len(g.E))
@@ -162,6 +168,9 @@ func (g *Graph) String() string {
 `, strings.Join(V, "\n    "), strings.Join(E, "\n    "))
 }
 
+// Finalize the graph. Once this method is called, edges and vertices
+// can no longer be added. The reason is simple, the mapping between
+// this graph and the graph is bliss has been constructed.
 func (g *Graph) Finalize() {
 	g.closed = true
 	V := make([]blissVertex, 0, len(g.V) + len(g.E))
@@ -192,6 +201,13 @@ func (g *Graph) Finalize() {
 	g.blissMap = &blissMap{V, E}
 }
 
+func (g *Graph) Canonized() bool {
+	return g.canon
+}
+
+// Creates a new graph which is the canonical representation. This
+// method does cause the graph to become finizalized as it makes use of
+// CanonicalPermutation.
 func (g *Graph) Canonical() Graph {
 	ng := Graph{
 		V: make([]Vertex, len(g.V)),
@@ -199,6 +215,8 @@ func (g *Graph) Canonical() Graph {
 		Kids: make([][]*Edge, len(g.Kids)),
 		Colors: make([]string, len(g.Colors)),
 		colorSet: make(map[string]int),
+		closed: true,
+		canon: true,
 	}
 	copy(ng.Colors, g.Colors)
 	for cid, color := range ng.Colors {
@@ -219,6 +237,10 @@ func (g *Graph) Canonical() Graph {
 	return ng
 }
 
+// Computes the canonical (labeling) permutation of the graph. Vord is
+// the mapping from vid->new-vid. Eord is eid->new-eid. Unless you need
+// something special you probably just want to use Canonical(). Note:
+// this method does finalize the graph as it calls into bliss.
 func (g *Graph) CanonicalPermutation() (Vord, Eord []int) {
 	if !g.closed {
 		g.Finalize()
@@ -249,6 +271,9 @@ func (g *Graph) CanonicalPermutation() (Vord, Eord []int) {
 	return Vord, Eord
 }
 
+// Adds a vertex. The id is not used by this package but is preserved.
+// The purpose is for you to track the identity of each vertex. The
+// label is the label of the vertex.
 func (g *Graph) AddVertex(id int, label string) *Vertex {
 	if g.closed {
 		return nil
@@ -263,6 +288,7 @@ func (g *Graph) AddVertex(id int, label string) *Vertex {
 	return &v
 }
 
+// Adds and edge. The label is the label on the edge.
 func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 	if g.closed {
 		return nil
