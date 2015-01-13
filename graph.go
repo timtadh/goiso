@@ -40,6 +40,13 @@ type Graph struct {
 	blissMap *blissMap
 }
 
+type SubGraph struct {
+	V []Vertex
+	E []Edge
+	Kids [][]*Edge
+	G *Graph
+}
+
 type blissMap struct {
 	V []blissVertex
 	E []Arc
@@ -105,6 +112,44 @@ func NewGraph(V, E int) Graph {
 		Colors: make([]string, 0, V),
 		colorSet: make(map[string]int),
 	}
+}
+
+// Construct a subgraph. The vids are the vertices you are including.
+// The filter_edges, are the edge labels you would like to ignore (can
+// be nil). Note: these are the indexes into V not the vertex Ids. Also
+// note: this subgraph will always be canonicalized!
+func (g *Graph) SubGraph(vids []int, filtered_edges map[string]bool) *SubGraph {
+	V := g.find_vertices(vids)
+	E := g.find_edges(vids, &V, filtered_edges)
+	sg := canonSubGraph(g, &V, &E)
+	return sg
+}
+
+func (g *Graph) find_vertices(vids []int) []Vertex {
+	V := make([]Vertex, 0, len(vids))
+	for i, vid := range vids {
+		V = append(V, g.V[vid].Copy(i))
+	}
+	return V
+}
+
+func (g *Graph) find_edges(vids []int, V *[]Vertex, filtered_edges map[string]bool) []Edge {
+	vset := make(map[int]int)
+	for i, vid := range vids {
+		vset[vid] = i
+	}
+	edges := make([]Edge, 0, len(vids))
+	for i, u := range vids {
+		for _, e := range g.Kids[u] {
+			if _, has := filtered_edges[g.Colors[e.Color]]; has {
+				continue
+			}
+			if j, has := vset[e.Targ]; has {
+				edges = append(edges, e.Copy(len(edges), (*V)[i].Idx, (*V)[j].Idx))
+			}
+		}
+	}
+	return edges
 }
 
 func safe_label(label string) string {
@@ -173,16 +218,20 @@ func (g *Graph) String() string {
 // this graph and the graph is bliss has been constructed.
 func (g *Graph) Finalize() {
 	g.closed = true
-	V := make([]blissVertex, 0, len(g.V) + len(g.E))
-	E := make([]Arc, 0, len(g.E)*2)
-	for _, v := range g.V {
+	g.blissMap = makeBlissMap(&g.V, &g.E)
+}
+
+func makeBlissMap(gV *[]Vertex, gE *[]Edge) *blissMap {
+	V := make([]blissVertex, 0, len(*gV) + len(*gE))
+	E := make([]Arc, 0, len(*gE)*2)
+	for _, v := range *gV {
 		V = append(V, blissVertex{
 			edge: false,
 			idx: v.Idx,
 			color: v.Color,
 		})
 	}
-	for _, e := range g.E {
+	for _, e := range *gE {
 		eid := len(V)
 		V = append(V, blissVertex{
 			edge: true,
@@ -198,8 +247,9 @@ func (g *Graph) Finalize() {
 			Targ: e.Targ,
 		})
 	}
-	g.blissMap = &blissMap{V, E}
+	return &blissMap{V, E}
 }
+
 
 func (g *Graph) Canonized() bool {
 	return g.canon
@@ -245,31 +295,9 @@ func (g *Graph) CanonicalPermutation() (Vord, Eord []int) {
 	if !g.closed {
 		g.Finalize()
 	}
-	bg := g.blissGraph()
-	defer bg.Release()
-	P := bg.CanonicalPermutation()
-	VP := make(perms, 0, len(g.V))
-	EP := make(perms, 0, len(g.E))
-	for i, p := range P {
-		v := g.blissMap.V[i]
-		if v.edge {
-			EP = append(EP, perm{v.idx, int(p)})
-		} else {
-			VP = append(VP, perm{v.idx, int(p)})
-		}
-	}
-	sort.Sort(VP)
-	sort.Sort(EP)
-	Vord = make([]int, len(g.V))
-	Eord = make([]int, len(g.E))
-	for p, vp := range VP {
-		Vord[vp.idx] = p
-	}
-	for p, ep := range EP {
-		Eord[ep.idx] = p
-	}
-	return Vord, Eord
+	return g.blissMap.canonicalPermutation(len(g.V), len(g.E))
 }
+
 
 // Adds a vertex. The id is not used by this package but is preserved.
 // The purpose is for you to track the identity of each vertex. The
@@ -316,14 +344,41 @@ func (g *Graph) color(label string) int {
 	return cid
 }
 
-func (g *Graph) blissGraph() *bliss.BlissGraph {
+func (bm *blissMap) blissGraph() *bliss.BlissGraph {
 	bg := bliss.NewGraph(0)
-	for _, v := range g.blissMap.V {
+	for _, v := range bm.V {
 		bg.AddVertex(uint(v.color))
 	}
-	for _, e := range g.blissMap.E {
+	for _, e := range bm.E {
 		bg.AddEdge(uint(e.Src), uint(e.Targ))
 	}
 	return bg
+}
+
+func (bm *blissMap) canonicalPermutation(V, E int) (Vord, Eord []int) {
+	bg := bm.blissGraph()
+	defer bg.Release()
+	P := bg.CanonicalPermutation()
+	VP := make(perms, 0, V)
+	EP := make(perms, 0, E)
+	for i, p := range P {
+		v := bm.V[i]
+		if v.edge {
+			EP = append(EP, perm{v.idx, int(p)})
+		} else {
+			VP = append(VP, perm{v.idx, int(p)})
+		}
+	}
+	sort.Sort(VP)
+	sort.Sort(EP)
+	Vord = make([]int, V)
+	Eord = make([]int, E)
+	for p, vp := range VP {
+		Vord[vp.idx] = p
+	}
+	for p, ep := range EP {
+		Eord[ep.idx] = p
+	}
+	return Vord, Eord
 }
 
