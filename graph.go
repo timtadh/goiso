@@ -32,7 +32,7 @@ import (
 type Graph struct {
 	V []Vertex
 	E []Edge
-	kids [][]*Edge
+	Kids [][]*Edge
 	Colors []string
 	colorSet map[string]int
 	closed bool
@@ -99,7 +99,7 @@ func NewGraph(V, E int) Graph {
 	return Graph{
 		V: make([]Vertex, 0, V),
 		E: make([]Edge, 0, E),
-		kids: make([][]*Edge, 0, V),
+		Kids: make([][]*Edge, 0, V),
 		Colors: make([]string, 0, V),
 		colorSet: make(map[string]int),
 	}
@@ -196,7 +196,7 @@ func (g *Graph) Canonical() Graph {
 	ng := Graph{
 		V: make([]Vertex, len(g.V)),
 		E: make([]Edge, len(g.E)),
-		kids: make([][]*Edge, len(g.kids)),
+		Kids: make([][]*Edge, len(g.Kids)),
 		Colors: make([]string, len(g.Colors)),
 		colorSet: make(map[string]int),
 	}
@@ -204,8 +204,8 @@ func (g *Graph) Canonical() Graph {
 	for cid, color := range ng.Colors {
 		ng.colorSet[color] = cid
 	}
-	for i := range ng.kids {
-		ng.kids[i] = make([]*Edge, 0, 5)
+	for i := range ng.Kids {
+		ng.Kids[i] = make([]*Edge, 0, 5)
 	}
 	vord, eord := g.CanonicalPermutation()
 	// i is the old vid, j is the new vid
@@ -214,7 +214,7 @@ func (g *Graph) Canonical() Graph {
 	}
 	for i, j := range eord {
 		ng.E[j] = g.E[i].Copy(j, vord[g.E[i].Src], vord[g.E[i].Targ])
-		ng.kids[vord[g.E[i].Src]] = append(ng.kids[vord[g.E[i].Src]], &ng.E[j])
+		ng.Kids[vord[g.E[i].Src]] = append(ng.Kids[vord[g.E[i].Src]], &ng.E[j])
 	}
 	return ng
 }
@@ -259,7 +259,7 @@ func (g *Graph) AddVertex(id int, label string) *Vertex {
 		Color: g.color(label),
 	}
 	g.V = append(g.V, v)
-	g.kids = append(g.kids, make([]*Edge, 0, 5))
+	g.Kids = append(g.Kids, make([]*Edge, 0, 5))
 	return &v
 }
 
@@ -276,7 +276,7 @@ func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 		Color: g.color(label),
 	}
 	g.E = append(g.E, e)
-	g.kids[e.Arc.Src] = append(g.kids[e.Arc.Src], &e)
+	g.Kids[e.Arc.Src] = append(g.Kids[e.Arc.Src], &e)
 	return &e
 }
 
