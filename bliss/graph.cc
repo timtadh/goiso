@@ -3868,11 +3868,13 @@ Digraph::nucr_find_first_component(const unsigned int level,
 	}
 	break;
       default:
-	fatal_error("Internal error - unknown splitting heuristics");
-	return 0;
+	// fatal_error("Internal error - unknown splitting heuristics");
+	return false;
       }
     }
-  assert(sh_return);
+  if (sh_return == NULL) {
+      return false;
+  }
 
   for(unsigned int i = 0; i < comp.size(); i++)
     {
