@@ -24,10 +24,29 @@ package bliss
 #include <stdio.h>
 #include "bliss_C.h"
 
+
 void
 hook(void *user_param, unsigned int N, const unsigned int *aut) {
 	return;
 }
+
+struct bliss_stats {
+  long double group_size_approx;
+  long unsigned int nof_nodes;
+  long unsigned int nof_leaf_nodes;
+  long unsigned int nof_bad_nodes;
+  long unsigned int nof_canupdates;
+  long unsigned int nof_generators;
+  unsigned long int max_level;
+};
+
+const unsigned int *
+canlabel(BlissGraph *graph) {
+	struct bliss_stats stats;
+	const unsigned int *p = bliss_find_canonical_labeling(graph, hook, NULL, &stats);
+	return p;
+}
+
 */
 import "C"
 
@@ -134,10 +153,9 @@ func (g *BlissGraph) CanonicalCtx(block func(*BlissGraph)) {
 // If you want to preserve the orginal vertex id's or know how the canonical
 // labeling actually maps to the original graph you need to use this method.
 func (g *BlissGraph) CanonicalPermutation() (mapping []uint) {
-	var stats C.struct_bliss_stats_struct
 	G := (*C.struct_bliss_graph_struct)(g)
 	N := uint(C.bliss_get_nof_vertices(G))
-	p := C.bliss_find_canonical_labeling(G, (*[0]byte)(C.hook), nil, &stats)
+	p := C.canlabel(G)
 	mapping = make([]uint, 0, N)
 	for i := uint(0); i < N; i++ {
 		ptr := (uintptr(unsafe.Pointer(p)) + uintptr(i)*4)
