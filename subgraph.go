@@ -31,6 +31,7 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		E: make([]Edge, len(*E)),
 		Kids: make([][]*Edge, len(*V)),
 		G: g,
+		idIndex: make(map[int]*Vertex),
 	}
 	for i := range sg.Kids {
 		sg.Kids[i] = make([]*Edge, 0, 5)
@@ -39,12 +40,33 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
 		sg.V[j] = (*V)[i].Copy(j)
+		sg.idIndex[sg.V[j].Id] = &sg.V[j]
 	}
 	for i, j := range eord {
 		sg.E[j] = (*E)[i].Copy(j, vord[(*E)[i].Src], vord[(*E)[i].Targ])
 		sg.Kids[vord[(*E)[i].Src]] = append(sg.Kids[vord[(*E)[i].Src]], &sg.E[j])
 	}
 	return sg
+}
+
+// This is a useful method for finding out if the subgraph has a vertex from the
+// parent graph
+func (sg *SubGraph) Has(id int) bool {
+	_, has := sg.idIndex[id]
+	return has
+}
+
+// This will extend the current subgraph and return a new larger subgraph. Note:
+// this will not modify the current subgraph in any way.
+func (sg *SubGraph) Extend(vids ...int) *SubGraph {
+	avids := make([]int, 0, len(sg.V) + len(vids))
+	for _, v := range sg.V {
+		avids = append(avids, v.Id)
+	}
+	for _, vid := range vids {
+		avids = append(avids, vid)
+	}
+	return sg.G.SubGraph(avids, nil)
 }
 
 // This is a short string useful as a unique (after canonicalization)

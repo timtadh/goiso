@@ -45,6 +45,7 @@ type SubGraph struct {
 	E []Edge
 	Kids [][]*Edge
 	G *Graph
+	idIndex map[int]*Vertex
 }
 
 type blissMap struct {
