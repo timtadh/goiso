@@ -56,7 +56,7 @@ func TestCanon(t *testing.T) {
 }
 
 func TestSubgraph(t *testing.T) {
-	g := NewGraph(8, 8)
+	g := NewGraph(0, 0)
 	{
 		a := g.AddVertex(12, "blue")
 		b := g.AddVertex(7, "blue")
