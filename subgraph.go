@@ -100,15 +100,15 @@ func (sg *SubGraph) String() string {
 	for _, v := range sg.V {
 		V = append(V, fmt.Sprintf(
 			"%v [label=\"%v\"];",
-			v.Id,
+			sg.G.V[v.Id].Id,
 			sg.G.Colors[v.Color],
 		))
 	}
 	for _, e := range sg.E {
 		E = append(E, fmt.Sprintf(
 			"%v -> %v [label=\"%v\"];",
-			sg.V[e.Src].Id,
-			sg.V[e.Targ].Id,
+			sg.G.V[sg.V[e.Src].Id].Id,
+			sg.G.V[sg.V[e.Targ].Id].Id,
 			sg.G.Colors[e.Color],
 		))
 	}
