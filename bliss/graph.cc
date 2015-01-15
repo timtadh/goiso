@@ -3989,6 +3989,7 @@ Graph::Graph(const unsigned int nof_vertices)
 
 Graph::~Graph()
 {
+  sh = shs_flm;
   ;
 }
 

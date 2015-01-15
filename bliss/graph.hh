@@ -843,7 +843,7 @@ protected:
   bool is_equitable() const;
 
   /* Splitting heuristics, documented in more detail in the cc-file. */
-  SplittingHeuristic sh;
+  SplittingHeuristic sh = shs_flm;
   Partition::Cell* find_next_cell_to_be_splitted(Partition::Cell *cell);
   Partition::Cell* sh_first();
   Partition::Cell* sh_first_smallest();
