@@ -35,6 +35,7 @@ type Graph struct {
 	Kids [][]*Edge
 	Colors []string
 	colorSet map[string]int
+	colorFreq []int
 	closed bool
 	canon bool
 	blissMap *blissMap
@@ -315,7 +316,7 @@ func (g *Graph) AddVertex(id int, label string) *Vertex {
 	v := Vertex{
 		Idx: len(g.V),
 		Id: id,
-		Color: g.color(label),
+		Color: g.addColor(label),
 	}
 	g.V = append(g.V, v)
 	g.Kids = append(g.Kids, make([]*Edge, 0, 5))
@@ -333,20 +334,27 @@ func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 			Targ: v.Idx,
 		},
 		Idx: len(g.E),
-		Color: g.color(label),
+		Color: g.addColor(label),
 	}
 	g.E = append(g.E, e)
 	g.Kids[e.Arc.Src] = append(g.Kids[e.Arc.Src], &e)
 	return &e
 }
 
-func (g *Graph) color(label string) int {
+// What is the frequency of a color?
+func (g *Graph) ColorFrequency(color int) int {
+	return g.colorFreq[color]
+}
+
+func (g *Graph) addColor(label string) int {
 	if cid, has := g.colorSet[label]; has {
+		g.colorFreq[cid] += 1
 		return cid
 	}
 	cid := len(g.Colors)
 	g.colorSet[label] = cid
 	g.Colors = append(g.Colors, label)
+	g.colorFreq = append(g.colorFreq, 1)
 	return cid
 }
 
