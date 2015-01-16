@@ -30,22 +30,22 @@ import (
 )
 
 type Graph struct {
-	V []Vertex
-	E []Edge
-	Kids [][]*Edge
-	Colors []string
-	colorSet map[string]int
+	V         []Vertex
+	E         []Edge
+	Kids      [][]*Edge
+	Colors    []string
+	colorSet  map[string]int
 	colorFreq []int
-	closed bool
-	canon bool
-	blissMap *blissMap
+	closed    bool
+	canon     bool
+	blissMap  *blissMap
 }
 
 type SubGraph struct {
-	V []Vertex
-	E []Edge
-	Kids [][]*Edge
-	G *Graph
+	V       []Vertex
+	E       []Edge
+	Kids    [][]*Edge
+	G       *Graph
 	idIndex map[int]*Vertex
 }
 
@@ -55,21 +55,21 @@ type blissMap struct {
 }
 
 type blissVertex struct {
-	edge bool
-	idx int
+	edge  bool
+	idx   int
 	color int
 }
 
 type Vertex struct {
-	Idx int
-	Id int
+	Idx   int
+	Id    int
 	Color int
 }
 
 func (v *Vertex) Copy(idx int) Vertex {
 	return Vertex{
-		Idx: idx,
-		Id: v.Id,
+		Idx:   idx,
+		Id:    v.Id,
 		Color: v.Color,
 	}
 }
@@ -80,17 +80,17 @@ type Arc struct {
 
 type Edge struct {
 	Arc
-	Idx int
+	Idx   int
 	Color int
 }
 
 func (e *Edge) Copy(idx, src, targ int) Edge {
 	return Edge{
 		Arc: Arc{
-			Src: src,
+			Src:  src,
 			Targ: targ,
 		},
-		Idx: idx,
+		Idx:   idx,
 		Color: e.Color,
 	}
 }
@@ -108,10 +108,10 @@ func (self perms) Less(i, j int) bool { return self[i].p < self[j].p }
 // Construct a new graph with V vertices and E edges.
 func NewGraph(V, E int) Graph {
 	return Graph{
-		V: make([]Vertex, 0, V),
-		E: make([]Edge, 0, E),
-		Kids: make([][]*Edge, 0, V),
-		Colors: make([]string, 0, V),
+		V:        make([]Vertex, 0, V),
+		E:        make([]Edge, 0, E),
+		Kids:     make([][]*Edge, 0, V),
+		Colors:   make([]string, 0, V),
 		colorSet: make(map[string]int),
 	}
 }
@@ -213,7 +213,7 @@ func (g *Graph) String() string {
 		))
 	}
 	return fmt.Sprintf(
-`digraph {
+		`digraph {
     %v
     %v
 }
@@ -229,34 +229,33 @@ func (g *Graph) Finalize() {
 }
 
 func makeBlissMap(gV *[]Vertex, gE *[]Edge) *blissMap {
-	V := make([]blissVertex, 0, len(*gV) + len(*gE))
+	V := make([]blissVertex, 0, len(*gV)+len(*gE))
 	E := make([]Arc, 0, len(*gE)*2)
 	for _, v := range *gV {
 		V = append(V, blissVertex{
-			edge: false,
-			idx: v.Idx,
+			edge:  false,
+			idx:   v.Idx,
 			color: v.Color,
 		})
 	}
 	for _, e := range *gE {
 		eid := len(V)
 		V = append(V, blissVertex{
-			edge: true,
-			idx: e.Idx,
+			edge:  true,
+			idx:   e.Idx,
 			color: e.Color,
 		})
 		E = append(E, Arc{
-			Src: e.Src,
+			Src:  e.Src,
 			Targ: eid,
 		})
 		E = append(E, Arc{
-			Src: eid,
+			Src:  eid,
 			Targ: e.Targ,
 		})
 	}
 	return &blissMap{V, E}
 }
-
 
 func (g *Graph) Canonized() bool {
 	return g.canon
@@ -267,13 +266,13 @@ func (g *Graph) Canonized() bool {
 // CanonicalPermutation.
 func (g *Graph) Canonical() Graph {
 	ng := Graph{
-		V: make([]Vertex, len(g.V)),
-		E: make([]Edge, len(g.E)),
-		Kids: make([][]*Edge, len(g.Kids)),
-		Colors: make([]string, len(g.Colors)),
+		V:        make([]Vertex, len(g.V)),
+		E:        make([]Edge, len(g.E)),
+		Kids:     make([][]*Edge, len(g.Kids)),
+		Colors:   make([]string, len(g.Colors)),
 		colorSet: make(map[string]int),
-		closed: true,
-		canon: true,
+		closed:   true,
+		canon:    true,
 	}
 	copy(ng.Colors, g.Colors)
 	for cid, color := range ng.Colors {
@@ -305,7 +304,6 @@ func (g *Graph) CanonicalPermutation() (Vord, Eord []int) {
 	return g.blissMap.canonicalPermutation(len(g.V), len(g.E))
 }
 
-
 // Adds a vertex. The id is not used by this package but is preserved.
 // The purpose is for you to track the identity of each vertex. The
 // label is the label of the vertex.
@@ -314,8 +312,8 @@ func (g *Graph) AddVertex(id int, label string) *Vertex {
 		return nil
 	}
 	v := Vertex{
-		Idx: len(g.V),
-		Id: id,
+		Idx:   len(g.V),
+		Id:    id,
 		Color: g.addColor(label),
 	}
 	g.V = append(g.V, v)
@@ -330,10 +328,10 @@ func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 	}
 	e := Edge{
 		Arc: Arc{
-			Src: u.Idx,
+			Src:  u.Idx,
 			Targ: v.Idx,
 		},
-		Idx: len(g.E),
+		Idx:   len(g.E),
 		Color: g.addColor(label),
 	}
 	g.E = append(g.E, e)
@@ -395,4 +393,3 @@ func (bm *blissMap) canonicalPermutation(V, E int) (Vord, Eord []int) {
 	}
 	return Vord, Eord
 }
-

@@ -135,9 +135,8 @@ func (a *BlissGraph) Iso(b *BlissGraph) bool {
 // you are done with the canonical graph be sure to release
 // it as well.
 func (g *BlissGraph) Canonical() *BlissGraph {
-	var stats C.struct_bliss_stats_struct
 	G := (*C.struct_bliss_graph_struct)(g)
-	p := C.bliss_find_canonical_labeling(G, (*[0]byte)(C.hook), nil, &stats)
+	p := C.canlabel(G)
 	return (*BlissGraph)(C.bliss_permute(G, p))
 }
 
@@ -164,4 +163,3 @@ func (g *BlissGraph) CanonicalPermutation() (mapping []uint) {
 	}
 	return mapping
 }
-

@@ -120,4 +120,3 @@ func TestSubgraph(t *testing.T) {
 		t.Error("sg1 != sg2")
 	}
 }
-

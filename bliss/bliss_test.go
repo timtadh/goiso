@@ -1,4 +1,5 @@
 package bliss
+
 /*
   Copyright (c) 2014 Tim Henderson
   Released under the GNU General Public License version 3.
@@ -97,5 +98,3 @@ func TestCompare(t *testing.T) {
 		})
 	})
 }
-
-

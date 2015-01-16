@@ -19,7 +19,7 @@ package goiso
   along with goiso.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import(
+import (
 	"fmt"
 	"strings"
 )
@@ -27,10 +27,10 @@ import(
 func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	bMap := makeBlissMap(V, E)
 	sg := &SubGraph{
-		V: make([]Vertex, len(*V)),
-		E: make([]Edge, len(*E)),
-		Kids: make([][]*Edge, len(*V)),
-		G: g,
+		V:       make([]Vertex, len(*V)),
+		E:       make([]Edge, len(*E)),
+		Kids:    make([][]*Edge, len(*V)),
+		G:       g,
 		idIndex: make(map[int]*Vertex),
 	}
 	for i := range sg.Kids {
@@ -59,7 +59,7 @@ func (sg *SubGraph) Has(id int) bool {
 // This will extend the current subgraph and return a new larger subgraph. Note:
 // this will not modify the current subgraph in any way.
 func (sg *SubGraph) Extend(vids ...int) *SubGraph {
-	avids := make([]int, 0, len(sg.V) + len(vids))
+	avids := make([]int, 0, len(sg.V)+len(vids))
 	for _, v := range sg.V {
 		avids = append(avids, v.Id)
 	}
@@ -113,10 +113,9 @@ func (sg *SubGraph) String() string {
 		))
 	}
 	return fmt.Sprintf(
-`digraph {
+		`digraph {
     %v
     %v
 }
 `, strings.Join(V, "\n    "), strings.Join(E, "\n    "))
 }
-
