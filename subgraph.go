@@ -56,6 +56,34 @@ func (sg *SubGraph) Has(id int) bool {
 	return has
 }
 
+// Checks to see if these two subgraphs are isomorphic. It relies on the fact that
+// subgraph are always stored in the cannonical ordering.
+func (sg *SubGraph) Equals(o *SubGraph) bool {
+	if len(sg.V) != len(o.V) {
+		return false
+	}
+	if len(sg.E) != len(o.E) {
+		return false
+	}
+	for i := range sg.V {
+		if sg.V[i].Color != o.V[i].Color {
+			return false
+		}
+	}
+	for i := range sg.E {
+		if sg.E[i].Color != o.E[i].Color {
+			return false
+		}
+		if sg.V[sg.E[i].Src].Color != o.V[o.E[i].Src].Color {
+			return false
+		}
+		if sg.V[sg.E[i].Targ].Color != o.V[o.E[i].Targ].Color {
+			return false
+		}
+	}
+	return true
+}
+
 // This will extend the current subgraph and return a new larger subgraph. Note:
 // this will not modify the current subgraph in any way.
 func (sg *SubGraph) Extend(vids ...int) *SubGraph {
