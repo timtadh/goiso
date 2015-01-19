@@ -20,6 +20,7 @@ package goiso
 */
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strings"
 )
@@ -95,6 +96,28 @@ func (sg *SubGraph) Extend(vids ...int) *SubGraph {
 		avids = append(avids, vid)
 	}
 	return sg.G.SubGraph(avids, nil)
+}
+
+func (sg *SubGraph) ShortLabel() []byte {
+	label := make([]byte, len(sg.V)*4 + len(sg.E)*12)
+	for i, v := range sg.V {
+		s := i*4
+		e := s + 4
+		binary.LittleEndian.PutUint32(label[s:e], uint32(v.Color))
+	}
+	off := len(sg.V)*4
+	for i, edge := range sg.E {
+		s := off + i*12
+		e := s + 4
+		binary.LittleEndian.PutUint32(label[s:e], uint32(edge.Src))
+		s += 4
+		e += 4
+		binary.LittleEndian.PutUint32(label[s:e], uint32(edge.Targ))
+		s += 4
+		e += 4
+		binary.LittleEndian.PutUint32(label[s:e], uint32(edge.Color))
+	}
+	return label
 }
 
 // This is a short string useful as a unique (after canonicalization)
