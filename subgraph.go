@@ -26,6 +26,18 @@ import (
 )
 
 func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
+	if len(*V) == 1 && len(*E) == 0 {
+		sg := &SubGraph{
+			V: *V,
+			E: *E,
+			Kids: make([][]*Edge, len(*V)),
+			G: g,
+			idIndex: make(map[int]*Vertex),
+		}
+		sg.Kids[0] = make([]*Edge, 0)
+		sg.idIndex[sg.V[0].Id] = &sg.V[0]
+		return sg
+	}
 	bMap := makeBlissMap(V, E)
 	sg := &SubGraph{
 		V:       make([]Vertex, len(*V)),
