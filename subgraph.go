@@ -110,6 +110,91 @@ func (sg *SubGraph) Extend(vids ...int) *SubGraph {
 	return sg.G.SubGraph(avids, nil)
 }
 
+// See SubGraph.Serialize for the format
+func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
+	lenV := binary.LittleEndian.Uint32(bytes[0:4])
+	lenE := binary.LittleEndian.Uint32(bytes[4:8])
+	off := 8
+	V := make([]Vertex, lenV)
+	E := make([]Edge, lenE)
+	kids := make([][]*Edge, len(V))
+	idIndex := make(map[int]*Vertex)
+	for i := range kids {
+		kids[i] = make([]*Edge, 0, 5)
+	}
+	for i := 0; i < int(lenV); i++ {
+		s := off + i*4
+		e := s + 4
+		id := int(binary.LittleEndian.Uint32(bytes[s:e]))
+		v := Vertex{
+			Idx: i,
+			Id: id,
+			Color: g.V[id].Color,
+		}
+		V[i] = v
+		idIndex[v.Id] = &V[i]
+	}
+	off += len(V)*4
+	for i := 0; i < int(lenE); i++ {
+		s := off + i*4
+		e := s + 4
+		src := int(binary.LittleEndian.Uint32(bytes[s:e]))
+		s += 4
+		e += 4
+		targ := int(binary.LittleEndian.Uint32(bytes[s:e]))
+		s += 4
+		e += 4
+		color := int(binary.LittleEndian.Uint32(bytes[s:e]))
+		edge := Edge{
+			Arc: Arc{
+				Src: src,
+				Targ: targ,
+			},
+			Idx: i,
+			Color: color,
+		}
+		E[i] = edge
+		kids[E[i].Src] = append(kids[E[i].Src], &E[i])
+	}
+	return &SubGraph{
+		V:       V,
+		E:       E,
+		Kids:    kids,
+		G:       g,
+		idIndex: idIndex,
+	}
+}
+
+// format: (vertex count : 4)(edge count : 4)(vertex id : 4)+[edge (src idx : 4)(targ idx : 4)(label color : 4)]+
+//
+// vertices are in idx order.
+// edges are in idx order.
+// the order is the canonical order.
+func (sg *SubGraph) Serialize() []byte {
+	bytes := make([]byte, 8 + len(sg.V)*4 + len(sg.E)*12)
+	binary.LittleEndian.PutUint32(bytes[0:4], uint32(len(sg.V)))
+	binary.LittleEndian.PutUint32(bytes[4:8], uint32(len(sg.E)))
+	off := 8
+	for i, v := range sg.V {
+		s := off + i*4
+		e := s + 4
+		binary.LittleEndian.PutUint32(bytes[s:e], uint32(v.Id)) // Idx in *Graph
+	}
+	off += len(sg.V)*4
+	for i, edge := range sg.E {
+		s := off + i*12
+		e := s + 4
+		binary.LittleEndian.PutUint32(bytes[s:e], uint32(edge.Src))
+		s += 4
+		e += 4
+		binary.LittleEndian.PutUint32(bytes[s:e], uint32(edge.Targ))
+		s += 4
+		e += 4
+		binary.LittleEndian.PutUint32(bytes[s:e], uint32(edge.Color))
+	}
+	return bytes
+}
+
 func (sg *SubGraph) ShortLabel() []byte {
 	label := make([]byte, len(sg.V)*4 + len(sg.E)*12)
 	for i, v := range sg.V {
