@@ -136,7 +136,7 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	}
 	off += len(V)*4
 	for i := 0; i < int(lenE); i++ {
-		s := off + i*4
+		s := off + i*12
 		e := s + 4
 		src := int(binary.LittleEndian.Uint32(bytes[s:e]))
 		s += 4
