@@ -196,23 +196,26 @@ func (sg *SubGraph) Serialize() []byte {
 }
 
 func (sg *SubGraph) ShortLabel() []byte {
-	label := make([]byte, len(sg.V)*4 + len(sg.E)*12)
+	label := make([]byte, 8 + len(sg.V)*4 + len(sg.E)*12)
+	binary.BigEndian.PutUint32(label[0:4], uint32(len(sg.V)))
+	binary.BigEndian.PutUint32(label[4:8], uint32(len(sg.E)))
+	off := 8
 	for i, v := range sg.V {
-		s := i*4
+		s := off + i*4
 		e := s + 4
-		binary.LittleEndian.PutUint32(label[s:e], uint32(v.Color))
+		binary.BigEndian.PutUint32(label[s:e], uint32(v.Color))
 	}
-	off := len(sg.V)*4
+	off += len(sg.V)*4
 	for i, edge := range sg.E {
 		s := off + i*12
 		e := s + 4
-		binary.LittleEndian.PutUint32(label[s:e], uint32(edge.Src))
+		binary.BigEndian.PutUint32(label[s:e], uint32(edge.Src))
 		s += 4
 		e += 4
-		binary.LittleEndian.PutUint32(label[s:e], uint32(edge.Targ))
+		binary.BigEndian.PutUint32(label[s:e], uint32(edge.Targ))
 		s += 4
 		e += 4
-		binary.LittleEndian.PutUint32(label[s:e], uint32(edge.Color))
+		binary.BigEndian.PutUint32(label[s:e], uint32(edge.Color))
 	}
 	return label
 }
