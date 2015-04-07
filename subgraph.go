@@ -246,13 +246,34 @@ func (sg *SubGraph) Label() string {
 // Stringifies the graph. This produces a String in the graphviz dot
 // language.
 func (sg *SubGraph) String() string {
+	return sg.StringWithAttrs(nil)
+}
+
+func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string {
 	V := make([]string, 0, len(sg.V))
 	E := make([]string, 0, len(sg.E))
+	safeStr := func(i interface{}) string{
+		s := fmt.Sprint(i)
+		return strings.Replace(s, "\n", "\\n", -1)
+	}
+	renderAttrs := func(v *Vertex) string {
+		a := attrs[v.Id]
+		label := sg.G.Colors[v.Color]
+		strs := make([]string, 0, len(a)+1)
+		strs = append(strs, fmt.Sprintf("label=\"%v\"", label))
+		for name, value := range a {
+			if name == "label" || name == "id" {
+				continue
+			}
+			strs = append(strs, fmt.Sprintf("%v=\"%v\"", name, safeStr(value)))
+		}
+		return strings.Join(strs, ",")
+	}
 	for _, v := range sg.V {
 		V = append(V, fmt.Sprintf(
-			"%v [label=\"%v\"];",
+			"%v [%v];",
 			sg.G.V[v.Id].Id,
-			sg.G.Colors[v.Color],
+			renderAttrs(&v),
 		))
 	}
 	for _, e := range sg.E {
@@ -270,3 +291,5 @@ func (sg *SubGraph) String() string {
 }
 `, strings.Join(V, "\n    "), strings.Join(E, "\n    "))
 }
+
+
