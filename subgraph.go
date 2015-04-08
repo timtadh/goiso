@@ -97,8 +97,11 @@ func (sg *SubGraph) Equals(o *SubGraph) bool {
 	return true
 }
 
-// This will extend the current subgraph and return a new larger subgraph. Note:
-// this will not modify the current subgraph in any way.
+// This will extend the current subgraph and return a new larger
+// subgraph. This does "vertex" extension. It adds a vertices listed by
+// G.Idx in vids to the extension and all edges contained in the parent
+// graph. If you want to add an edge at a time use EdgeExtend.
+// Note: this will not modify the current subgraph in any way.
 func (sg *SubGraph) Extend(vids ...int) *SubGraph {
 	avids := make([]int, 0, len(sg.V)+len(vids))
 	for _, v := range sg.V {
@@ -108,6 +111,50 @@ func (sg *SubGraph) Extend(vids ...int) *SubGraph {
 		avids = append(avids, vid)
 	}
 	return sg.G.SubGraph(avids, nil)
+}
+
+// This will extend the current subgraph with the given edge. Only the
+// Arc and Color attributes of the edge are used. The Idx attribute is
+// ignored. The edge.Arc.Src must be in the SubGraph, edge.Arg.Targ does
+// not have to be in the subgraph. If it is not already there it will be
+// added. The Src and Targ should contain the Idx of the vertices in the
+// original graph. (This becomes the Id field in the SubGraph).
+func (sg *SubGraph) EdgeExtend(edge *Edge) *SubGraph {
+	avids := make([]int, 0, len(sg.V) + 1)
+	has := false
+	var src int = -1
+	var targ int = -1
+	for _, v := range sg.V {
+		avids = append(avids, v.Id)
+		if edge.Src == v.Id {
+			src = v.Idx
+		}
+		if edge.Targ == v.Id {
+			has = true
+			targ = v.Idx
+		}
+	}
+	if !has {
+		targ = len(avids)
+		avids = append(avids, edge.Targ)
+	}
+	if src == -1 || targ == -1 {
+		panic(fmt.Errorf("Src or Targ not in graph"))
+	}
+	V := sg.G.find_vertices(avids)
+	E := make([]Edge, 0, len(sg.E) + 1)
+	for _, e := range sg.E {
+		E = append(E, e.Copy(len(E), e.Src, e.Targ))
+	}
+	E = append(E, Edge{
+		Arc: Arc{
+			Src: src,
+			Targ: targ,
+		},
+		Idx: len(E),
+		Color: edge.Color,
+	})
+	return canonSubGraph(sg.G, &V, &E)
 }
 
 // See SubGraph.Serialize for the format
