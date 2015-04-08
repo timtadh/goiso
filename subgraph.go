@@ -32,10 +32,11 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 			E: *E,
 			Kids: make([][]*Edge, len(*V)),
 			G: g,
-			idIndex: make(map[int]*Vertex),
+			vertexIndex: make(map[int]*Vertex),
+			edgeIndex: make(map[Arc]*Edge),
 		}
 		sg.Kids[0] = make([]*Edge, 0)
-		sg.idIndex[sg.V[0].Id] = &sg.V[0]
+		sg.vertexIndex[sg.V[0].Id] = &sg.V[0]
 		return sg
 	}
 	bMap := makeBlissMap(V, E)
@@ -44,7 +45,8 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		E:       make([]Edge, len(*E)),
 		Kids:    make([][]*Edge, len(*V)),
 		G:       g,
-		idIndex: make(map[int]*Vertex),
+		vertexIndex: make(map[int]*Vertex),
+		edgeIndex: make(map[Arc]*Edge),
 	}
 	for i := range sg.Kids {
 		sg.Kids[i] = make([]*Edge, 0, 5)
@@ -53,24 +55,34 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
 		sg.V[j] = (*V)[i].Copy(j)
-		sg.idIndex[sg.V[j].Id] = &sg.V[j]
+		sg.vertexIndex[sg.V[j].Id] = &sg.V[j]
 	}
 	for i, j := range eord {
 		sg.E[j] = (*E)[i].Copy(j, vord[(*E)[i].Src], vord[(*E)[i].Targ])
 		sg.Kids[vord[(*E)[i].Src]] = append(sg.Kids[vord[(*E)[i].Src]], &sg.E[j])
+		sg.edgeIndex[sg.E[j].Arc] = &sg.E[i]
 	}
 	return sg
 }
 
-// This is a useful method for finding out if the subgraph has a vertex from the
-// parent graph
-func (sg *SubGraph) Has(id int) bool {
-	_, has := sg.idIndex[id]
+// This is a useful method for finding out if the subgraph has a
+// vertex from the parent graph
+func (sg *SubGraph) HasVertex(id int) bool {
+	_, has := sg.vertexIndex[id]
 	return has
 }
 
-// Checks to see if these two subgraphs are isomorphic. It relies on the fact that
-// subgraph are always stored in the cannonical ordering.
+func (sg *SubGraph) HasEdge(a Arc, color int) bool {
+	e, has := sg.edgeIndex[a]
+	if !has {
+		return false
+	}
+	return e.Color == color
+}
+
+// Checks to see if these two subgraphs are isomorphic. It relies on
+// the fact that subgraph are always stored in the cannonical
+// ordering.
 func (sg *SubGraph) Equals(o *SubGraph) bool {
 	if len(sg.V) != len(o.V) {
 		return false
@@ -165,7 +177,8 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	V := make([]Vertex, lenV)
 	E := make([]Edge, lenE)
 	kids := make([][]*Edge, len(V))
-	idIndex := make(map[int]*Vertex)
+	vertexIndex := make(map[int]*Vertex)
+	edgeIndex := make(map[Arc]*Edge)
 	for i := range kids {
 		kids[i] = make([]*Edge, 0, 5)
 	}
@@ -179,7 +192,7 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 			Color: g.V[id].Color,
 		}
 		V[i] = v
-		idIndex[v.Id] = &V[i]
+		vertexIndex[v.Id] = &V[i]
 	}
 	off += len(V)*4
 	for i := 0; i < int(lenE); i++ {
@@ -202,13 +215,15 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 		}
 		E[i] = edge
 		kids[E[i].Src] = append(kids[E[i].Src], &E[i])
+		edgeIndex[E[i].Arc] = &E[i]
 	}
 	return &SubGraph{
 		V:       V,
 		E:       E,
 		Kids:    kids,
 		G:       g,
-		idIndex: idIndex,
+		vertexIndex: vertexIndex,
+		edgeIndex: edgeIndex,
 	}
 }
 
