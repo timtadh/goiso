@@ -60,7 +60,8 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	for i, j := range eord {
 		sg.E[j] = (*E)[i].Copy(j, vord[(*E)[i].Src], vord[(*E)[i].Targ])
 		sg.Kids[vord[(*E)[i].Src]] = append(sg.Kids[vord[(*E)[i].Src]], &sg.E[j])
-		sg.edgeIndex[sg.E[j].Arc] = &sg.E[i]
+		idArc := Arc{sg.V[sg.E[j].Src].Id, sg.V[sg.E[j].Targ].Id}
+		sg.edgeIndex[idArc] = &sg.E[j]
 	}
 	return sg
 }
@@ -127,10 +128,11 @@ func (sg *SubGraph) Extend(vids ...int) *SubGraph {
 
 // This will extend the current subgraph with the given edge. Only the
 // Arc and Color attributes of the edge are used. The Idx attribute is
-// ignored. The edge.Arc.Src must be in the SubGraph, edge.Arg.Targ does
-// not have to be in the subgraph. If it is not already there it will be
-// added. The Src and Targ should contain the Idx of the vertices in the
-// original graph. (This becomes the Id field in the SubGraph).
+// ignored. The edge.Arc.Src must be in the SubGraph, edge.Arg.Targ
+// does not have to be in the subgraph. If it is not already there it
+// will be added. The Src and Targ should contain the Idx of the
+// vertices in the original graph. (This becomes the Id field in the
+// SubGraph).
 func (sg *SubGraph) EdgeExtend(edge *Edge) *SubGraph {
 	avids := make([]int, 0, len(sg.V) + 1)
 	has := false
@@ -215,7 +217,8 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 		}
 		E[i] = edge
 		kids[E[i].Src] = append(kids[E[i].Src], &E[i])
-		edgeIndex[E[i].Arc] = &E[i]
+		idArc := Arc{V[E[i].Src].Id, V[E[i].Targ].Id}
+		edgeIndex[idArc] = &E[i]
 	}
 	return &SubGraph{
 		V:       V,
