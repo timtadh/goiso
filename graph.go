@@ -33,6 +33,7 @@ type Graph struct {
 	V         []Vertex
 	E         []Edge
 	Kids      [][]*Edge
+	Parents    [][]*Edge
 	Colors    []string
 	colorSet  map[string]int
 	colorFreq []int
@@ -45,6 +46,7 @@ type SubGraph struct {
 	V       []Vertex
 	E       []Edge
 	Kids    [][]*Edge
+	Parents [][]*Edge
 	G       *Graph
 	vertexIndex map[int]*Vertex
 	edgeIndex map[Arc]*Edge
@@ -112,6 +114,7 @@ func NewGraph(V, E int) Graph {
 		V:        make([]Vertex, 0, V),
 		E:        make([]Edge, 0, E),
 		Kids:     make([][]*Edge, 0, V),
+		Parents:  make([][]*Edge, 0, V),
 		Colors:   make([]string, 0, V),
 		colorSet: make(map[string]int),
 	}
@@ -270,6 +273,7 @@ func (g *Graph) Canonical() Graph {
 		V:        make([]Vertex, len(g.V)),
 		E:        make([]Edge, len(g.E)),
 		Kids:     make([][]*Edge, len(g.Kids)),
+		Parents:  make([][]*Edge, len(g.Parents)),
 		Colors:   make([]string, len(g.Colors)),
 		colorSet: make(map[string]int),
 		closed:   true,
@@ -282,6 +286,9 @@ func (g *Graph) Canonical() Graph {
 	for i := range ng.Kids {
 		ng.Kids[i] = make([]*Edge, 0, 5)
 	}
+	for i := range ng.Parents {
+		ng.Parents[i] = make([]*Edge, 0, 5)
+	}
 	vord, eord := g.CanonicalPermutation()
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
@@ -290,6 +297,7 @@ func (g *Graph) Canonical() Graph {
 	for i, j := range eord {
 		ng.E[j] = g.E[i].Copy(j, vord[g.E[i].Src], vord[g.E[i].Targ])
 		ng.Kids[vord[g.E[i].Src]] = append(ng.Kids[vord[g.E[i].Src]], &ng.E[j])
+		ng.Parents[vord[g.E[i].Targ]] = append(ng.Parents[vord[g.E[i].Targ]], &ng.E[j])
 	}
 	return ng
 }
@@ -319,6 +327,7 @@ func (g *Graph) AddVertex(id int, label string) *Vertex {
 	}
 	g.V = append(g.V, v)
 	g.Kids = append(g.Kids, make([]*Edge, 0, 5))
+	g.Parents = append(g.Parents, make([]*Edge, 0, 5))
 	return &v
 }
 
@@ -337,6 +346,7 @@ func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 	}
 	g.E = append(g.E, e)
 	g.Kids[e.Arc.Src] = append(g.Kids[e.Arc.Src], &e)
+	g.Parents[e.Arc.Targ] = append(g.Parents[e.Arc.Targ], &e)
 	return &e
 }
 

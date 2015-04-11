@@ -31,11 +31,13 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 			V: *V,
 			E: *E,
 			Kids: make([][]*Edge, len(*V)),
+			Parents: make([][]*Edge, len(*V)),
 			G: g,
 			vertexIndex: make(map[int]*Vertex),
 			edgeIndex: make(map[Arc]*Edge),
 		}
 		sg.Kids[0] = make([]*Edge, 0)
+		sg.Parents[0] = make([]*Edge, 0)
 		sg.vertexIndex[sg.V[0].Id] = &sg.V[0]
 		return sg
 	}
@@ -44,12 +46,16 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		V:       make([]Vertex, len(*V)),
 		E:       make([]Edge, len(*E)),
 		Kids:    make([][]*Edge, len(*V)),
+		Parents: make([][]*Edge, len(*V)),
 		G:       g,
 		vertexIndex: make(map[int]*Vertex),
 		edgeIndex: make(map[Arc]*Edge),
 	}
 	for i := range sg.Kids {
 		sg.Kids[i] = make([]*Edge, 0, 5)
+	}
+	for i := range sg.Parents {
+		sg.Parents[i] = make([]*Edge, 0, 5)
 	}
 	vord, eord := bMap.canonicalPermutation(len(*V), len(*E))
 	// i is the old vid, j is the new vid
@@ -60,6 +66,7 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	for i, j := range eord {
 		sg.E[j] = (*E)[i].Copy(j, vord[(*E)[i].Src], vord[(*E)[i].Targ])
 		sg.Kids[vord[(*E)[i].Src]] = append(sg.Kids[vord[(*E)[i].Src]], &sg.E[j])
+		sg.Parents[vord[(*E)[i].Targ]] = append(sg.Parents[vord[(*E)[i].Targ]], &sg.E[j])
 		idArc := Arc{sg.V[sg.E[j].Src].Id, sg.V[sg.E[j].Targ].Id}
 		sg.edgeIndex[idArc] = &sg.E[j]
 	}
@@ -135,22 +142,31 @@ func (sg *SubGraph) Extend(vids ...int) *SubGraph {
 // SubGraph).
 func (sg *SubGraph) EdgeExtend(edge *Edge) *SubGraph {
 	avids := make([]int, 0, len(sg.V) + 1)
-	has := false
+	hasTarg := false
+	hasSrc := false
 	var src int = -1
 	var targ int = -1
 	for _, v := range sg.V {
 		avids = append(avids, v.Id)
 		if edge.Src == v.Id {
+			hasSrc = true
 			src = v.Idx
 		}
 		if edge.Targ == v.Id {
-			has = true
+			hasTarg = true
 			targ = v.Idx
 		}
 	}
-	if !has {
+	if !hasTarg && !hasSrc {
+		panic(fmt.Errorf("both Src or Targ not in graph"))
+	}
+	if !hasTarg {
 		targ = len(avids)
 		avids = append(avids, edge.Targ)
+	}
+	if !hasSrc {
+		src = len(avids)
+		avids = append(avids, edge.Src)
 	}
 	if src == -1 || targ == -1 {
 		panic(fmt.Errorf("Src or Targ not in graph"))
@@ -171,6 +187,76 @@ func (sg *SubGraph) EdgeExtend(edge *Edge) *SubGraph {
 	return canonSubGraph(sg.G, &V, &E)
 }
 
+// Removes the edge at the given idx and if necessary an attached
+// vertex. It returns a new subgraph which has been canonicalized. If
+// the graph only has two vertices and one edge it will return a graph
+// with only the Src of the edge. The target will be dropped.
+func (sg *SubGraph) RemoveEdge(edgeIdx int) *SubGraph {
+	rmSrc := true
+	rmTarg := true
+	edge := &sg.E[edgeIdx]
+	if len(sg.E) == 1 && len(sg.V) == 2 {
+		return sg.G.SubGraph([]int{sg.V[edge.Src].Id}, nil)
+	}
+	for _, e := range sg.Kids[edge.Src] {
+		if e == edge {
+			continue
+		}
+		rmSrc = false
+	}
+	for _, e := range sg.Parents[edge.Src] {
+		if e == edge {
+			continue
+		}
+		rmSrc = false
+	}
+	for _, e := range sg.Kids[edge.Targ] {
+		if e == edge {
+			continue
+		}
+		rmTarg = false
+	}
+	for _, e := range sg.Parents[edge.Targ] {
+		if e == edge {
+			continue
+		}
+		rmTarg = false
+	}
+	if rmSrc && rmTarg {
+		panic("would have removed both source and target")
+	}
+	rmV := rmSrc || rmTarg
+	var rmVidx int
+	if rmSrc {
+		rmVidx = edge.Src
+	}
+	if rmTarg {
+		rmVidx = edge.Targ
+	}
+	adjustIdx := func(idx int) int {
+		if rmV && idx > rmVidx {
+			return idx - 1
+		}
+		return idx
+	}
+	avids := make([]int, 0, len(sg.V))
+	for idx, v := range sg.V {
+		if rmV && rmVidx == idx {
+			continue
+		}
+		avids = append(avids, v.Id)
+	}
+	V := sg.G.find_vertices(avids)
+	E := make([]Edge, 0, len(sg.E) + 1)
+	for idx, e := range sg.E {
+		if idx == edgeIdx {
+			continue
+		}
+		E = append(E, e.Copy(len(E), adjustIdx(e.Src), adjustIdx(e.Targ)))
+	}
+	return canonSubGraph(sg.G, &V, &E)
+}
+
 // See SubGraph.Serialize for the format
 func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	lenV := binary.LittleEndian.Uint32(bytes[0:4])
@@ -179,10 +265,14 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	V := make([]Vertex, lenV)
 	E := make([]Edge, lenE)
 	kids := make([][]*Edge, len(V))
+	parents := make([][]*Edge, len(V))
 	vertexIndex := make(map[int]*Vertex)
 	edgeIndex := make(map[Arc]*Edge)
 	for i := range kids {
 		kids[i] = make([]*Edge, 0, 5)
+	}
+	for i := range parents {
+		parents[i] = make([]*Edge, 0, 5)
 	}
 	for i := 0; i < int(lenV); i++ {
 		s := off + i*4
@@ -217,6 +307,7 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 		}
 		E[i] = edge
 		kids[E[i].Src] = append(kids[E[i].Src], &E[i])
+		parents[E[i].Targ] = append(parents[E[i].Targ], &E[i])
 		idArc := Arc{V[E[i].Src].Id, V[E[i].Targ].Id}
 		edgeIndex[idArc] = &E[i]
 	}
@@ -224,6 +315,7 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 		V:       V,
 		E:       E,
 		Kids:    kids,
+		Parents: parents,
 		G:       g,
 		vertexIndex: vertexIndex,
 		edgeIndex: edgeIndex,
@@ -261,9 +353,10 @@ func (sg *SubGraph) Serialize() []byte {
 }
 
 func (sg *SubGraph) ShortLabel() []byte {
-	label := make([]byte, 8 + len(sg.V)*4 + len(sg.E)*12)
-	binary.BigEndian.PutUint32(label[0:4], uint32(len(sg.V)))
-	binary.BigEndian.PutUint32(label[4:8], uint32(len(sg.E)))
+	size := 8 + len(sg.V)*4 + len(sg.E)*12
+	label := make([]byte, size)
+	binary.BigEndian.PutUint32(label[0:4], uint32(len(sg.E)))
+	binary.BigEndian.PutUint32(label[4:8], uint32(len(sg.V)))
 	off := 8
 	for i, v := range sg.V {
 		s := off + i*4
@@ -294,7 +387,7 @@ func (sg *SubGraph) Label() string {
 		V = append(V, fmt.Sprintf(
 			"(%v:%v)",
 			v.Idx,
-			safe_label(sg.G.Colors[v.Color]),
+			v.Color,
 		))
 	}
 	for _, e := range sg.E {
@@ -305,7 +398,7 @@ func (sg *SubGraph) Label() string {
 			safe_label(sg.G.Colors[e.Color]),
 		))
 	}
-	return fmt.Sprintf("%v%v", strings.Join(V, ""), strings.Join(E, ""))
+	return fmt.Sprintf("%v%v%v%v", len(sg.E), len(sg.V), strings.Join(V, ""), strings.Join(E, ""))
 }
 
 // Stringifies the graph. This produces a String in the graphviz dot
@@ -319,7 +412,9 @@ func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string
 	E := make([]string, 0, len(sg.E))
 	safeStr := func(i interface{}) string{
 		s := fmt.Sprint(i)
-		return strings.Replace(s, "\n", "\\n", -1)
+		s = strings.Replace(s, "\n", "\\n", -1)
+		s = strings.Replace(s, "\"", "\\\"", -1)
+		return s
 	}
 	renderAttrs := func(v *Vertex) string {
 		a := attrs[v.Id]
