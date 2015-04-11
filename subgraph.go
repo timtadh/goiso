@@ -387,7 +387,7 @@ func (sg *SubGraph) Label() string {
 		V = append(V, fmt.Sprintf(
 			"(%v:%v)",
 			v.Idx,
-			v.Color,
+			sg.G.Colors[v.Color],
 		))
 	}
 	for _, e := range sg.E {
