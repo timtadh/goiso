@@ -25,6 +25,11 @@ import (
 	"strings"
 )
 
+type ColoredArc struct {
+	Arc
+	Color int
+}
+
 func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	if len(*V) == 1 && len(*E) == 0 {
 		sg := &SubGraph{
@@ -34,7 +39,7 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 			Parents: make([][]*Edge, len(*V)),
 			G: g,
 			vertexIndex: make(map[int]*Vertex),
-			edgeIndex: make(map[Arc]*Edge),
+			edgeIndex: make(map[ColoredArc]*Edge),
 		}
 		sg.Kids[0] = make([]*Edge, 0)
 		sg.Parents[0] = make([]*Edge, 0)
@@ -43,13 +48,13 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	}
 	bMap := makeBlissMap(V, E)
 	sg := &SubGraph{
-		V:       make([]Vertex, len(*V)),
-		E:       make([]Edge, len(*E)),
-		Kids:    make([][]*Edge, len(*V)),
-		Parents: make([][]*Edge, len(*V)),
-		G:       g,
+		G:           g,
+		V:           make([]Vertex, len(*V)),
+		E:           make([]Edge, len(*E)),
+		Kids:        make([][]*Edge, len(*V)),
+		Parents:     make([][]*Edge, len(*V)),
+		edgeIndex:   make(map[ColoredArc]*Edge),
 		vertexIndex: make(map[int]*Vertex),
-		edgeIndex: make(map[Arc]*Edge),
 	}
 	for i := range sg.Kids {
 		sg.Kids[i] = make([]*Edge, 0, 5)
@@ -67,8 +72,10 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		sg.E[j] = (*E)[i].Copy(j, vord[(*E)[i].Src], vord[(*E)[i].Targ])
 		sg.Kids[vord[(*E)[i].Src]] = append(sg.Kids[vord[(*E)[i].Src]], &sg.E[j])
 		sg.Parents[vord[(*E)[i].Targ]] = append(sg.Parents[vord[(*E)[i].Targ]], &sg.E[j])
-		idArc := Arc{sg.V[sg.E[j].Src].Id, sg.V[sg.E[j].Targ].Id}
-		sg.edgeIndex[idArc] = &sg.E[j]
+	}
+	for i := range sg.E {
+		idArc := ColoredArc{Arc{sg.V[sg.E[i].Src].Id, sg.V[sg.E[i].Targ].Id}, sg.E[i].Color}
+		sg.edgeIndex[idArc] = &sg.E[i]
 	}
 	return sg
 }
@@ -80,12 +87,9 @@ func (sg *SubGraph) HasVertex(id int) bool {
 	return has
 }
 
-func (sg *SubGraph) HasEdge(a Arc, color int) bool {
-	e, has := sg.edgeIndex[a]
-	if !has {
-		return false
-	}
-	return e.Color == color
+func (sg *SubGraph) HasEdge(a ColoredArc) bool {
+	_, has := sg.edgeIndex[a]
+	return has
 }
 
 // Checks to see if these two subgraphs are isomorphic. It relies on
@@ -267,7 +271,7 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	kids := make([][]*Edge, len(V))
 	parents := make([][]*Edge, len(V))
 	vertexIndex := make(map[int]*Vertex)
-	edgeIndex := make(map[Arc]*Edge)
+	edgeIndex := make(map[ColoredArc]*Edge)
 	for i := range kids {
 		kids[i] = make([]*Edge, 0, 5)
 	}
@@ -308,17 +312,17 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 		E[i] = edge
 		kids[E[i].Src] = append(kids[E[i].Src], &E[i])
 		parents[E[i].Targ] = append(parents[E[i].Targ], &E[i])
-		idArc := Arc{V[E[i].Src].Id, V[E[i].Targ].Id}
+		idArc := ColoredArc{Arc{V[E[i].Src].Id, V[E[i].Targ].Id}, E[i].Color}
 		edgeIndex[idArc] = &E[i]
 	}
 	return &SubGraph{
-		V:       V,
-		E:       E,
-		Kids:    kids,
-		Parents: parents,
-		G:       g,
+		G:           g,
+		V:           V,
+		E:           E,
+		Kids:        kids,
+		Parents:     parents,
+		edgeIndex:   edgeIndex,
 		vertexIndex: vertexIndex,
-		edgeIndex: edgeIndex,
 	}
 }
 
@@ -421,6 +425,7 @@ func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string
 		label := sg.G.Colors[v.Color]
 		strs := make([]string, 0, len(a)+1)
 		strs = append(strs, fmt.Sprintf("label=\"%v\"", label))
+		strs = append(strs, fmt.Sprintf("idx=\"%v\"", v.Id))
 		for name, value := range a {
 			if name == "label" || name == "id" {
 				continue

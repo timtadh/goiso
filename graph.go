@@ -49,7 +49,7 @@ type SubGraph struct {
 	Parents [][]*Edge
 	G       *Graph
 	vertexIndex map[int]*Vertex
-	edgeIndex map[Arc]*Edge
+	edgeIndex map[ColoredArc]*Edge
 }
 
 type blissMap struct {
