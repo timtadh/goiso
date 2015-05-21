@@ -30,6 +30,68 @@ type ColoredArc struct {
 	Color int
 }
 
+var sgRecycler chan *SubGraph
+var epsRecycler chan []*Edge
+
+func init() {
+	sgRecycler = make(chan *SubGraph, 50)
+	epsRecycler = make(chan []*Edge, 50)
+}
+
+func getSg() *SubGraph {
+	select {
+	case sg := <-sgRecycler:
+		sg.edgeIndex = make(map[ColoredArc]*Edge)
+		sg.vertexIndex = make(map[int]*Vertex)
+		return sg
+	default:
+		return &SubGraph{
+			G:           nil,
+			V:           make([]Vertex, 0, 10),
+			E:           make([]Edge, 0, 10),
+			Kids:        make([][]*Edge, 0, 10),
+			Parents:     make([][]*Edge, 0, 10),
+			edgeIndex:   make(map[ColoredArc]*Edge),
+			vertexIndex: make(map[int]*Vertex),
+		}
+	}
+}
+
+func ReleaseSg(sg *SubGraph) {
+	for _, kids := range sg.Kids {
+		releaseEdgePtrSlice(kids)
+	}
+	for _, parents := range sg.Parents {
+		releaseEdgePtrSlice(parents)
+	}
+	sg.G = nil
+	sg.V = sg.V[:0]
+	sg.E = sg.E[:0]
+	sg.Kids = sg.Kids[:0]
+	sg.Parents = sg.Parents[:0]
+	sg.edgeIndex = nil
+	sg.vertexIndex = nil
+	select {
+	case sgRecycler<-sg: return
+	default: return
+	}
+}
+
+func getEdgePtrSlice() []*Edge {
+	select {
+	case eps := <-epsRecycler: return eps
+	default: return make([]*Edge, 0, 5)
+	}
+}
+
+func releaseEdgePtrSlice(eps []*Edge) {
+	eps = eps[:0]
+	select {
+	case epsRecycler<-eps: return
+	default: return
+	}
+}
+
 func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	if len(*V) == 1 && len(*E) == 0 {
 		sg := &SubGraph{
@@ -41,27 +103,52 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 			vertexIndex: make(map[int]*Vertex),
 			edgeIndex: make(map[ColoredArc]*Edge),
 		}
-		sg.Kids[0] = make([]*Edge, 0)
-		sg.Parents[0] = make([]*Edge, 0)
+		sg.Kids[0] = getEdgePtrSlice()
+		sg.Parents[0] = getEdgePtrSlice()
 		sg.vertexIndex[sg.V[0].Id] = &sg.V[0]
 		return sg
 	}
-	bMap := makeBlissMap(V, E)
-	sg := &SubGraph{
-		G:           g,
-		V:           make([]Vertex, len(*V)),
-		E:           make([]Edge, len(*E)),
-		Kids:        make([][]*Edge, len(*V)),
-		Parents:     make([][]*Edge, len(*V)),
-		edgeIndex:   make(map[ColoredArc]*Edge),
-		vertexIndex: make(map[int]*Vertex),
+	sg := getSg()
+	sg.G = g
+	if len(*V) <= cap(sg.V) {
+		sg.V = sg.V[:len(*V)]
+	} else {
+		sg.V = make([]Vertex, len(*V), len(*V) + 10)
+	}
+	if len(*E) <= cap(sg.E) {
+		sg.E = sg.E[:len(*E)]
+	} else {
+		sg.E = make([]Edge, len(*E), len(*E) + 10)
+	}
+	if len(*V) <= cap(sg.Kids) {
+		sg.Kids = sg.Kids[:len(*V)]
+	} else {
+		sg.Kids = make([][]*Edge, len(*V), len(*V) + 10)
+	}
+	if len(*V) <= cap(sg.Parents) {
+		sg.Parents = sg.Kids[:len(*V)]
+	} else {
+		sg.Parents = make([][]*Edge, len(*V), len(*V) + 10)
+	}
+	if len(*V) != len(sg.V) {
+		panic("len(*V) != len(sg.V)")
+	}
+	if len(*E) != len(sg.E) {
+		panic("len(*E) != len(sg.E)")
+	}
+	if len(*V) != len(sg.Kids) {
+		panic("len(*V) != len(sg.Kids)")
+	}
+	if len(*V) != len(sg.Parents) {
+		panic("len(*V) != len(sg.Parents)")
 	}
 	for i := range sg.Kids {
-		sg.Kids[i] = make([]*Edge, 0, 5)
+		sg.Kids[i] = getEdgePtrSlice()
 	}
 	for i := range sg.Parents {
-		sg.Parents[i] = make([]*Edge, 0, 5)
+		sg.Parents[i] = getEdgePtrSlice()
 	}
+	bMap := makeBlissMap(V, E)
 	vord, eord := bMap.canonicalPermutation(len(*V), len(*E))
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
