@@ -1,0 +1,3 @@
+[submodule "src/github.com/timtadh/recycler"]
+	path = src/github.com/timtadh/recycler
+	url = git@github.com:timtadh/recycler.git

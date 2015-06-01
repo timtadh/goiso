@@ -25,9 +25,209 @@ import (
 	"strings"
 )
 
+import (
+	"github.com/timtadh/recycler"
+)
+
 type ColoredArc struct {
 	Arc
 	Color int
+}
+
+var recycling *recycler.Recycler
+
+func init() {
+	N := 10
+	recycling = recycler.New()
+	recycling.Add(
+		"*[]Vertex",
+		func() interface{} {
+			var x []Vertex = nil
+			return &x
+		},
+		func(item interface{}, params ... interface{}) {
+			var x *[]Vertex = item.(*[]Vertex)
+			var capacity int = 0
+			var length int = 0
+			if len(params) == 1 {
+				length = params[0].(int)
+				capacity = length
+			} else {
+				length = params[0].(int)
+				capacity = params[1].(int)
+			}
+			if length > capacity {
+				panic(fmt.Errorf("length > capacity, %v > %v", length, capacity))
+			}
+			if cap(*x) < capacity {
+				// we are going to discard this item
+				*x = make([]Vertex, length, capacity)
+			} else {
+				if length > cap(*x) {
+					panic(fmt.Errorf("length > cap(*x), %v > %v", length, cap(*x)))
+				}
+				*x = (*x)[:length]
+			}
+		},
+		func(item interface{}) {
+			var x *[]Vertex = item.(*[]Vertex)
+			*x = (*x)[:cap(*x)]
+			for _, v := range *x {
+				v.Clear()
+			}
+			*x = (*x)[:0]
+		},
+		N,
+	)
+	recycling.Add(
+		"*[]Edge",
+		func() interface{} {
+			var x []Edge = nil
+			return &x
+		},
+		func(item interface{}, params ... interface{}) {
+			var x *[]Edge = item.(*[]Edge)
+			var capacity int = 0
+			var length int = 0
+			if len(params) == 1 {
+				length = params[0].(int)
+				capacity = length
+			} else {
+				length = params[0].(int)
+				capacity = params[1].(int)
+			}
+			if cap(*x) < capacity {
+				// we are going to discard this item
+				*x = make([]Edge, length, capacity)
+			} else {
+				*x = (*x)[:length]
+			}
+		},
+		func(item interface{}) {
+			var x *[]Edge = item.(*[]Edge)
+			*x = (*x)[:cap(*x)]
+			for _, e := range *x {
+				e.Clear()
+			}
+			*x = (*x)[:0]
+		},
+		N,
+	)
+	recycling.Add(
+		"*[]*Edge",
+		func() interface{} {
+			var x []*Edge = nil
+			return &x
+		},
+		func(item interface{}, params ... interface{}) {
+			var x *[]*Edge = item.(*[]*Edge)
+			var capacity int = 0
+			var length int = 0
+			if len(params) == 1 {
+				length = params[0].(int)
+				capacity = length
+			} else {
+				length = params[0].(int)
+				capacity = params[1].(int)
+			}
+			if cap(*x) < capacity {
+				// we are going to discard this item
+				*x = make([]*Edge, length, capacity)
+			} else {
+				*x = (*x)[:length]
+			}
+		},
+		func(item interface{}) {
+			var x *[]*Edge = item.(*[]*Edge)
+			*x = (*x)[:cap(*x)]
+			for i := range *x {
+				(*x)[i] = nil
+			}
+			*x = (*x)[:0]
+		},
+		N*2,
+	)
+	recycling.Add(
+		"*[][]*Edge",
+		func() interface{} {
+			var x [][]*Edge = nil
+			return &x
+		},
+		func(item interface{}, params ... interface{}) {
+			var x *[][]*Edge = item.(*[][]*Edge)
+			var capacity int = 0
+			var length int = 0
+			if len(params) == 1 {
+				length = params[0].(int)
+				capacity = length
+			} else {
+				length = params[0].(int)
+				capacity = params[1].(int)
+			}
+			if cap(*x) < capacity {
+				// we are going to discard this item
+				*x = make([][]*Edge, length, capacity)
+			} else {
+				*x = (*x)[:length]
+			}
+			s := *x
+			// fmt.Printf("%p %d %d\n", s, cap(s), len(s))
+			for i := 0; i < length; i++ {
+			// 	fmt.Printf("%p %d %d %d\n", s, cap(s), len(s), i)
+			// 	fmt.Println((s)[i])
+				s[i] = *recycling.Get("*[]*Edge", 0, 5).(*[]*Edge)
+				// s[i] = make([]*Edge, 0, 5)
+			}
+		},
+		func(item interface{}) {
+			var x *[][]*Edge = item.(*[][]*Edge)
+			*x = (*x)[:cap(*x)]
+			for i := range *x {
+				recycling.Recycle("*[]*Edge", &(*x)[i])
+				(*x)[i] = nil
+			}
+			*x = (*x)[:0]
+		},
+		N,
+	)
+	recycling.Add(
+		"*SubGraph",
+		func() interface{} {
+			return &SubGraph{}
+		},
+		func(item interface{}, params ... interface{}) {
+			var sg *SubGraph = item.(*SubGraph)
+			var g *Graph = params[0].(*Graph)
+			var V int = params[1].(int)
+			var E int = params[2].(int)
+			sg.G = g
+			sg.V = *recycling.Get("*[]Vertex", V).(*[]Vertex)
+			sg.E = *recycling.Get("*[]Edge", E).(*[]Edge)
+			sg.Kids = *recycling.Get("*[][]*Edge", V).(*[][]*Edge)
+			sg.Parents = *recycling.Get("*[][]*Edge", V).(*[][]*Edge)
+			sg.edgeIndex = make(map[ColoredArc]*Edge)
+			sg.vertexIndex = make(map[int]*Vertex)
+		},
+		func(item interface{}) {
+			var sg *SubGraph = item.(*SubGraph)
+			recycling.Recycle("*[]Vertex", &sg.V)
+			recycling.Recycle("*[]Edge", &sg.E)
+			// recycling.Recycle("*[][]*Edge", &sg.Kids)
+			// recycling.Recycle("*[][]*Edge", &sg.Parents)
+			sg.G = nil
+			sg.V = nil
+			sg.E = nil
+			sg.Kids = nil
+			sg.Parents = nil
+			sg.edgeIndex = nil
+			sg.vertexIndex = nil
+		},
+		N,
+	)
+}
+
+func RecycleSubGraph(sg *SubGraph) {
+	recycling.Recycle("*SubGraph", sg)
 }
 
 func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
@@ -41,27 +241,10 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 			vertexIndex: make(map[int]*Vertex),
 			edgeIndex: make(map[ColoredArc]*Edge),
 		}
-		sg.Kids[0] = make([]*Edge, 0)
-		sg.Parents[0] = make([]*Edge, 0)
-		sg.vertexIndex[sg.V[0].Id] = &sg.V[0]
 		return sg
 	}
 	bMap := makeBlissMap(V, E)
-	sg := &SubGraph{
-		G:           g,
-		V:           make([]Vertex, len(*V)),
-		E:           make([]Edge, len(*E)),
-		Kids:        make([][]*Edge, len(*V)),
-		Parents:     make([][]*Edge, len(*V)),
-		edgeIndex:   make(map[ColoredArc]*Edge),
-		vertexIndex: make(map[int]*Vertex),
-	}
-	for i := range sg.Kids {
-		sg.Kids[i] = make([]*Edge, 0, 5)
-	}
-	for i := range sg.Parents {
-		sg.Parents[i] = make([]*Edge, 0, 5)
-	}
+	sg := recycling.Get("*SubGraph", g, len(*V), len(*E)).(*SubGraph)
 	vord, eord := bMap.canonicalPermutation(len(*V), len(*E))
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
@@ -78,6 +261,33 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		sg.edgeIndex[idArc] = &sg.E[i]
 	}
 	return sg
+}
+
+func (sg *SubGraph) Copy() *SubGraph {
+	c := recycling.Get("*SubGraph", sg.G, len(sg.V), len(sg.E)).(*SubGraph)
+	for i := range sg.V {
+		c.V[i] = sg.V[i]
+		c.vertexIndex[c.V[i].Id] = &c.V[i]
+	}
+	for i := range sg.E {
+		c.E[i] = sg.E[i]
+
+	}
+	for i, kids := range sg.Kids {
+		for _, kid := range kids {
+			c.Kids[i] = append(c.Kids[i], kid)
+		}
+	}
+	for i, parents := range sg.Parents {
+		for _, parent := range parents {
+			c.Parents[i] = append(c.Parents[i], parent)
+		}
+	}
+	for i := range c.E {
+		idArc := ColoredArc{Arc{c.V[c.E[i].Src].Id, c.V[c.E[i].Targ].Id}, c.E[i].Color}
+		c.edgeIndex[idArc] = &c.E[i]
+	}
+	return c
 }
 
 // This is a useful method for finding out if the subgraph has a
@@ -266,18 +476,7 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	lenV := binary.LittleEndian.Uint32(bytes[0:4])
 	lenE := binary.LittleEndian.Uint32(bytes[4:8])
 	off := 8
-	V := make([]Vertex, lenV)
-	E := make([]Edge, lenE)
-	kids := make([][]*Edge, len(V))
-	parents := make([][]*Edge, len(V))
-	vertexIndex := make(map[int]*Vertex)
-	edgeIndex := make(map[ColoredArc]*Edge)
-	for i := range kids {
-		kids[i] = make([]*Edge, 0, 5)
-	}
-	for i := range parents {
-		parents[i] = make([]*Edge, 0, 5)
-	}
+	sg := recycling.Get("*SubGraph", g, int(lenV), int(lenE)).(*SubGraph)
 	for i := 0; i < int(lenV); i++ {
 		s := off + i*4
 		e := s + 4
@@ -287,10 +486,10 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 			Id: id,
 			Color: g.V[id].Color,
 		}
-		V[i] = v
-		vertexIndex[v.Id] = &V[i]
+		sg.V[i] = v
+		sg.vertexIndex[v.Id] = &sg.V[i]
 	}
-	off += len(V)*4
+	off += len(sg.V)*4
 	for i := 0; i < int(lenE); i++ {
 		s := off + i*12
 		e := s + 4
@@ -309,21 +508,13 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 			Idx: i,
 			Color: color,
 		}
-		E[i] = edge
-		kids[E[i].Src] = append(kids[E[i].Src], &E[i])
-		parents[E[i].Targ] = append(parents[E[i].Targ], &E[i])
-		idArc := ColoredArc{Arc{V[E[i].Src].Id, V[E[i].Targ].Id}, E[i].Color}
-		edgeIndex[idArc] = &E[i]
+		sg.E[i] = edge
+		sg.Kids[sg.E[i].Src] = append(sg.Kids[sg.E[i].Src], &sg.E[i])
+		sg.Parents[sg.E[i].Targ] = append(sg.Parents[sg.E[i].Targ], &sg.E[i])
+		idArc := ColoredArc{Arc{sg.V[sg.E[i].Src].Id, sg.V[sg.E[i].Targ].Id}, sg.E[i].Color}
+		sg.edgeIndex[idArc] = &sg.E[i]
 	}
-	return &SubGraph{
-		G:           g,
-		V:           V,
-		E:           E,
-		Kids:        kids,
-		Parents:     parents,
-		edgeIndex:   edgeIndex,
-		vertexIndex: vertexIndex,
-	}
+	return sg
 }
 
 // format: (vertex count : 4)(edge count : 4)(vertex id : 4)+[edge (src idx : 4)(targ idx : 4)(label color : 4)]+

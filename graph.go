@@ -77,6 +77,12 @@ func (v *Vertex) Copy(idx int) Vertex {
 	}
 }
 
+func (v *Vertex) Clear() {
+	v.Idx = 0
+	v.Id = 0
+	v.Color = 0
+}
+
 type Arc struct {
 	Src, Targ int
 }
@@ -85,6 +91,17 @@ type Edge struct {
 	Arc
 	Idx   int
 	Color int
+}
+
+func (e *Edge) Clear() {
+	e.Arc.Clear()
+	e.Idx = 0
+	e.Color = 0
+}
+
+func (a *Arc) Clear() {
+	a.Src = 0
+	a.Targ = 0
 }
 
 func (e *Edge) Copy(idx, src, targ int) Edge {
