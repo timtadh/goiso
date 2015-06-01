@@ -424,7 +424,7 @@ func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string
 		a := attrs[v.Id]
 		label := sg.G.Colors[v.Color]
 		strs := make([]string, 0, len(a)+1)
-		strs = append(strs, fmt.Sprintf("label=\"%v\"", label))
+		strs = append(strs, fmt.Sprintf("label=\"%v\"", safeStr(label)))
 		strs = append(strs, fmt.Sprintf("idx=\"%v\"", v.Id))
 		for name, value := range a {
 			if name == "label" || name == "id" {
