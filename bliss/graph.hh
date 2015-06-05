@@ -227,9 +227,7 @@ protected:
   virtual bool split_neighbourhood_of_cell(Partition::Cell * const) = 0;
   void refine_to_equitable();
   void refine_to_equitable(Partition::Cell * const unit_cell);
-  void refine_to_equitable(Partition::Cell * const unit_cell1,
-			   Partition::Cell * const unit_cell2);
-
+  void refine_to_equitable(Partition::Cell * const unit_cell1, Partition::Cell * const unit_cell2);
 
   /** \internal
    * \return false if it was detected that the current certificate
@@ -843,7 +841,7 @@ protected:
   bool is_equitable() const;
 
   /* Splitting heuristics, documented in more detail in the cc-file. */
-  SplittingHeuristic sh = shs_flm;
+  SplittingHeuristic sh;
   Partition::Cell* find_next_cell_to_be_splitted(Partition::Cell *cell);
   Partition::Cell* sh_first();
   Partition::Cell* sh_first_smallest();

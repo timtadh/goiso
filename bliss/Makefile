@@ -1,7 +1,7 @@
-%.o:%.c
+%.o:%.c %.h
 	gcc -c -g -m64 -o $@ $<
 
-%.o:%.cc
+%.o:%.cc %.hh
 	g++ -c -g -m64 -o $@ $<
 
 libbliss.a: bliss_C.o defs.o graph.o heap.o orbit.o partition.o timer.o uintseqhash.o utils.o

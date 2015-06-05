@@ -220,13 +220,14 @@ public:
   /** Clear the invariant_values of the elements in the Cell \a cell. */
   void clear_ivs(Cell* const cell);
 
+  /* Is component recursion support in use? */
+  bool cr_enabled;
+
 private:
   /*
    * Component recursion data structures
    */
 
-  /* Is component recursion support in use? */
-  bool cr_enabled;
 
   class CRCell {
   public:
