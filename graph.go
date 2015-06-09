@@ -193,7 +193,7 @@ func (g *Graph) Label() string {
 			safe_label(g.Colors[e.Color]),
 		))
 	}
-	return fmt.Sprintf("%d%d%v%v", len(g.E), len(g.V), strings.Join(V, ""), strings.Join(E, ""))
+	return fmt.Sprintf("%d:%d%v%v", len(g.E), len(g.V), strings.Join(V, ""), strings.Join(E, ""))
 }
 
 // Stringifies the graph. This produces a String in the graphviz dot

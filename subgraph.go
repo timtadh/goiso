@@ -402,7 +402,7 @@ func (sg *SubGraph) Label() string {
 			safe_label(sg.G.Colors[e.Color]),
 		))
 	}
-	return fmt.Sprintf("%v%v%v%v", len(sg.E), len(sg.V), strings.Join(V, ""), strings.Join(E, ""))
+	return fmt.Sprintf("%v:%v%v%v", len(sg.E), len(sg.V), strings.Join(V, ""), strings.Join(E, ""))
 }
 
 // Stringifies the graph. This produces a String in the graphviz dot
