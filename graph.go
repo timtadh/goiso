@@ -116,7 +116,7 @@ func NewGraph(V, E int) Graph {
 		Kids:     make([][]*Edge, 0, V),
 		Parents:  make([][]*Edge, 0, V),
 		Colors:   make([]string, 0, V),
-		colorSet: make(map[string]int),
+		colorSet: make(map[string]int, V),
 	}
 }
 

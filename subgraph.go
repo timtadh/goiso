@@ -38,8 +38,8 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 			Kids: make([][]*Edge, len(*V)),
 			Parents: make([][]*Edge, len(*V)),
 			G: g,
-			vertexIndex: make(map[int]*Vertex),
-			edgeIndex: make(map[ColoredArc]*Edge),
+			vertexIndex: make(map[int]*Vertex, len(*V)),
+			edgeIndex: make(map[ColoredArc]*Edge, len(*E)),
 		}
 		sg.Kids[0] = make([]*Edge, 0)
 		sg.Parents[0] = make([]*Edge, 0)
@@ -53,8 +53,8 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		E:           make([]Edge, len(*E)),
 		Kids:        make([][]*Edge, len(*V)),
 		Parents:     make([][]*Edge, len(*V)),
-		edgeIndex:   make(map[ColoredArc]*Edge),
-		vertexIndex: make(map[int]*Vertex),
+		edgeIndex:   make(map[ColoredArc]*Edge, len(*E)),
+		vertexIndex: make(map[int]*Vertex, len(*V)),
 	}
 	for i := range sg.Kids {
 		sg.Kids[i] = make([]*Edge, 0, 5)
@@ -270,8 +270,8 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	E := make([]Edge, lenE)
 	kids := make([][]*Edge, len(V))
 	parents := make([][]*Edge, len(V))
-	vertexIndex := make(map[int]*Vertex)
-	edgeIndex := make(map[ColoredArc]*Edge)
+	vertexIndex := make(map[int]*Vertex, len(V))
+	edgeIndex := make(map[ColoredArc]*Edge, len(E))
 	for i := range kids {
 		kids[i] = make([]*Edge, 0, 5)
 	}
