@@ -20,10 +20,16 @@ package goiso
 */
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"strings"
 )
+
+type Lattice struct {
+	V []*SubGraph
+	E []*Arc
+}
 
 type ColoredArc struct {
 	Arc
@@ -259,6 +265,116 @@ func (sg *SubGraph) RemoveEdge(edgeIdx int) *SubGraph {
 		E = append(E, e.Copy(len(E), adjustIdx(e.Src), adjustIdx(e.Targ)))
 	}
 	return canonSubGraph(sg.G, &V, &E)
+}
+
+func (sg *SubGraph) connected() bool {
+	pop := func(stack []int) (int, []int) {
+		idx := stack[len(stack)-1]
+		stack = stack[0:len(stack)-1]
+		return idx, stack
+	}
+	visit := func(idx int, stack []int, processed map[int]bool) []int {
+		processed[idx] = true
+		for _, kid := range sg.Kids[idx] {
+			if _, has := processed[kid.Targ]; !has {
+				stack = append(stack, kid.Targ)
+			}
+		}
+		for _, parent := range sg.Parents[idx] {
+			if _, has := processed[parent.Src]; !has {
+				stack = append(stack, parent.Src)
+			}
+		}
+		return stack
+	}
+	processed := make(map[int]bool, len(sg.V))
+	stack := make([]int, 0, len(sg.V))
+	stack = append(stack, 0)
+	for len(stack) > 0 {
+		var v int
+		v, stack = pop(stack)
+		stack = visit(v, stack, processed)
+	}
+	return len(processed) == len(sg.V)
+}
+
+func (sg *SubGraph) Lattice() *Lattice {
+	rlattice := make([]*SubGraph, 0, len(sg.E))
+	pop := func(queue []*SubGraph) (*SubGraph, []*SubGraph) {
+		sg := queue[0]
+		copy(queue[0:len(queue)-1],queue[1:len(queue)])
+		queue = queue[0:len(queue)-1]
+		return sg, queue
+	}
+	parents := func(sg *SubGraph) []*SubGraph {
+		parents := make([]*SubGraph, 0, len(sg.E))
+		for i := range sg.E {
+			if len(sg.V) == 2 && len(sg.E) == 1 {
+				a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
+				b := sg.G.SubGraph([]int{sg.V[sg.E[0].Targ].Id}, nil)
+				parents = append(parents, a, b)
+				continue
+			} else if len(sg.V) == 1 && len(sg.E) == 1 {
+				a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
+				parents = append(parents, a)
+				continue
+			}
+			p := sg.RemoveEdge(i)
+			if p.connected() {
+				parents = append(parents, p)
+			}
+		}
+		return parents
+	}
+	kids := func(sg *SubGraph) []*SubGraph {
+		kids := make([]*SubGraph, 0, len(sg.V))
+		for _, v := range sg.V {
+			for _, e := range sg.G.Kids[v.Id] {
+				if !sg.HasEdge(ColoredArc{e.Arc, e.Color}) {
+					kids = append(kids, sg.EdgeExtend(e))
+				}
+			}
+			for _, e := range sg.G.Parents[v.Id] {
+				if !sg.HasEdge(ColoredArc{e.Arc, e.Color}) {
+					kids = append(kids, sg.EdgeExtend(e))
+				}
+			}
+		}
+		return kids
+	}
+	queue := make([]*SubGraph, 0, len(sg.E))
+	queue = append(queue, sg)
+	queued := make(map[string]bool)
+	for len(queue) > 0 {
+		sg, queue = pop(queue)
+		queued[string(sg.ShortLabel())] = true
+		rlattice = append(rlattice, sg)
+		for _, psg := range parents(sg) {
+			l := string(psg.ShortLabel())
+			if _, has := queued[l]; !has {
+				queue = append(queue, psg)
+				queued[l] = true
+			}
+		}
+	}
+	lattice := make([]*SubGraph, 0, len(rlattice))
+	labels := make([][]byte, 0, len(lattice))
+	for i := len(rlattice)-1; i >= 0; i-- {
+		lattice = append(lattice, rlattice[i])
+		labels = append(labels, lattice[len(lattice)-1].ShortLabel())
+	}
+	edges := make([]*Arc, 0, len(lattice)*2)
+	for i, sg := range lattice {
+		for _, kid := range kids(sg) {
+			kidLabel := kid.ShortLabel()
+			for j, label := range labels {
+				if bytes.Equal(label, kidLabel) {
+					edges = append(edges, &Arc{Src: i, Targ: j})
+				}
+			}
+		}
+	}
+	return &Lattice{lattice, edges}
 }
 
 // See SubGraph.Serialize for the format
