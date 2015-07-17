@@ -604,7 +604,7 @@ func (sg *SubGraph) vegEdge(e *Edge) []byte {
 	obj["targ"] = sg.G.V[sg.V[e.Targ].Id].Id
 	obj["label"] = sg.G.Colors[e.Color]
 	j := renderJson(obj)
-	return bytes.Join([][]byte{[]byte("Edge"), j}, []byte("\t"))
+	return bytes.Join([][]byte{[]byte("edge"), j}, []byte("\t"))
 }
 
 type JsonObject map[string]interface{}
