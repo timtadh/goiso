@@ -22,7 +22,9 @@ package goiso
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -573,4 +575,45 @@ func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string
 `, strings.Join(V, "\n    "), strings.Join(E, "\n    "))
 }
 
+
+func (sg *SubGraph) VEG(attrs map[int]map[string]interface{}) []byte {
+	L := make([][]byte, 0, len(sg.V) + len(sg.E))
+	for i := range sg.V {
+		L = append(L, sg.vegVertex(&sg.V[i], attrs[sg.V[i].Id]))
+	}
+	for i := range sg.E {
+		L = append(L, sg.vegEdge(&sg.E[i]))
+	}
+	return bytes.Join(L, []byte("\n"))
+}
+
+func (sg *SubGraph) vegVertex(v *Vertex, attrs map[string]interface{}) []byte {
+	obj := make(JsonObject)
+	obj["id"] = sg.G.V[v.Id].Id
+	obj["label"] = sg.G.Colors[v.Color]
+	for k, v := range attrs {
+		obj[k] = v
+	}
+	j := renderJson(obj)
+	return bytes.Join([][]byte{[]byte("vertex"), j}, []byte("\t"))
+}
+
+func (sg *SubGraph) vegEdge(e *Edge) []byte {
+	obj := make(JsonObject)
+	obj["src"] = sg.G.V[sg.V[e.Src].Id].Id
+	obj["targ"] = sg.G.V[sg.V[e.Targ].Id].Id
+	obj["label"] = sg.G.Colors[e.Color]
+	j := renderJson(obj)
+	return bytes.Join([][]byte{[]byte("Edge"), j}, []byte("\t"))
+}
+
+type JsonObject map[string]interface{}
+
+func renderJson(obj JsonObject) []byte {
+	j, err := json.Marshal(obj)
+	if err != nil {
+		log.Panic(err)
+	}
+	return j
+}
 
