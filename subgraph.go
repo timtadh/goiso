@@ -389,9 +389,13 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 			panic(e)
 		}
 	}()
-	lenV := binary.LittleEndian.Uint32(bytes[0:4])
-	lenE := binary.LittleEndian.Uint32(bytes[4:8])
-	off := 8
+	mark := binary.LittleEndian.Uint32(bytes[0:4])
+	lenV := binary.LittleEndian.Uint32(bytes[4:8])
+	lenE := binary.LittleEndian.Uint32(bytes[8:12])
+	if mark != 0xaaaaaaaa {
+		panic(fmt.Errorf("Not a serialized subgraph"))
+	}
+	off := 12
 	V := make([]Vertex, lenV)
 	E := make([]Edge, lenE)
 	kids := make([][]*Edge, len(V))
@@ -458,10 +462,11 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 // edges are in idx order.
 // the order is the canonical order.
 func (sg *SubGraph) Serialize() []byte {
-	bytes := make([]byte, 8 + len(sg.V)*4 + len(sg.E)*12)
-	binary.LittleEndian.PutUint32(bytes[0:4], uint32(len(sg.V)))
-	binary.LittleEndian.PutUint32(bytes[4:8], uint32(len(sg.E)))
-	off := 8
+	bytes := make([]byte, 12 + len(sg.V)*4 + len(sg.E)*12)
+	binary.LittleEndian.PutUint32(bytes[0:4], uint32(0xaaaaaaaa))
+	binary.LittleEndian.PutUint32(bytes[4:8], uint32(len(sg.V)))
+	binary.LittleEndian.PutUint32(bytes[8:12], uint32(len(sg.E)))
+	off := 12
 	for i, v := range sg.V {
 		s := off + i*4
 		e := s + 4
