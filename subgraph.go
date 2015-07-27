@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"runtime/debug"
 	"strings"
 )
 
@@ -381,6 +382,13 @@ func (sg *SubGraph) Lattice() *Lattice {
 
 // See SubGraph.Serialize for the format
 func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Println(string(debug.Stack()))
+			log.Println(bytes)
+			panic(e)
+		}
+	}()
 	lenV := binary.LittleEndian.Uint32(bytes[0:4])
 	lenE := binary.LittleEndian.Uint32(bytes[4:8])
 	off := 8
