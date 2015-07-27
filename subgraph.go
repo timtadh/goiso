@@ -361,20 +361,16 @@ func (sg *SubGraph) Lattice() *Lattice {
 		}
 	}
 	lattice := make([]*SubGraph, 0, len(rlattice))
-	labels := make([][]byte, 0, len(lattice))
+	labels := make(map[string]int,len(lattice))
 	for i := len(rlattice)-1; i >= 0; i-- {
 		lattice = append(lattice, rlattice[i])
-		labels = append(labels, lattice[len(lattice)-1].ShortLabel())
+		labels[string(lattice[len(lattice)-1].ShortLabel())] = len(lattice)-1
 	}
 	edges := make([]*Arc, 0, len(lattice)*2)
 	for i, sg := range lattice {
 		for _, kid := range kids(sg) {
-			kidLabel := kid.ShortLabel()
-			for j, label := range labels {
-				if bytes.Equal(label, kidLabel) {
-					edges = append(edges, &Arc{Src: i, Targ: j})
-				}
-			}
+			j := labels[string(kid.ShortLabel())]
+			edges = append(edges, &Arc{Src: i, Targ: j})
 		}
 	}
 	return &Lattice{lattice, edges}
