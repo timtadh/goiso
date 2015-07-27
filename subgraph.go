@@ -369,8 +369,10 @@ func (sg *SubGraph) Lattice() *Lattice {
 	edges := make([]*Arc, 0, len(lattice)*2)
 	for i, sg := range lattice {
 		for _, kid := range kids(sg) {
-			j := labels[string(kid.ShortLabel())]
-			edges = append(edges, &Arc{Src: i, Targ: j})
+			j, has := labels[string(kid.ShortLabel())]
+			if has {
+				edges = append(edges, &Arc{Src: i, Targ: j})
+			}
 		}
 	}
 	return &Lattice{lattice, edges}
