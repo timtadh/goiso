@@ -556,8 +556,12 @@ func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string
 		a := attrs[v.Id]
 		label := sg.G.Colors[v.Color]
 		strs := make([]string, 0, len(a)+1)
-		strs = append(strs, fmt.Sprintf("label=\"%v\"", safeStr(label)))
-		strs = append(strs, fmt.Sprintf("idx=\"%v\"", v.Id))
+		strs = append(strs, fmt.Sprintf(`idx="%v"`, v.Id))
+		if line, has := a["start_line"]; has {
+			strs = append(strs, fmt.Sprintf(`label="%v\n[line: %v]"`, safeStr(label), safeStr(line)))
+		} else {
+			strs = append(strs, fmt.Sprintf(`label="%v"`, safeStr(label)))
+		}
 		for name, value := range a {
 			if name == "label" || name == "id" {
 				continue
