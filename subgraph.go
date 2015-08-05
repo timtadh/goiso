@@ -310,36 +310,53 @@ func (sg *SubGraph) Lattice() *Lattice {
 		return sg, queue
 	}
 	parents := func(sg *SubGraph) []*SubGraph {
-		parents := make([]*SubGraph, 0, len(sg.E))
+		set := make(map[string]bool, len(sg.V))
+		parents := make([]*SubGraph, 0, len(sg.V))
+		addParent := func(parent *SubGraph) {
+			label := string(parent.ShortLabel())
+			if _, has := set[label]; !has {
+				set[label] = true
+				parents = append(parents, parent)
+			}
+		}
 		for i := range sg.E {
 			if len(sg.V) == 2 && len(sg.E) == 1 {
 				a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
 				b := sg.G.SubGraph([]int{sg.V[sg.E[0].Targ].Id}, nil)
-				parents = append(parents, a, b)
+				addParent(a)
+				addParent(b)
 				continue
 			} else if len(sg.V) == 1 && len(sg.E) == 1 {
 				a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
-				parents = append(parents, a)
+				addParent(a)
 				continue
 			}
 			p := sg.RemoveEdge(i)
 			if p.connected() {
-				parents = append(parents, p)
+				addParent(p)
 			}
 		}
 		return parents
 	}
 	kids := func(sg *SubGraph) []*SubGraph {
+		set := make(map[string]bool, len(sg.V))
 		kids := make([]*SubGraph, 0, len(sg.V))
+		addKid := func(kid *SubGraph) {
+			label := string(kid.ShortLabel())
+			if _, has := set[label]; !has {
+				set[label] = true
+				kids = append(kids, kid)
+			}
+		}
 		for _, v := range sg.V {
 			for _, e := range sg.G.Kids[v.Id] {
 				if !sg.HasEdge(ColoredArc{e.Arc, e.Color}) {
-					kids = append(kids, sg.EdgeExtend(e))
+					addKid(sg.EdgeExtend(e))
 				}
 			}
 			for _, e := range sg.G.Parents[v.Id] {
 				if !sg.HasEdge(ColoredArc{e.Arc, e.Color}) {
-					kids = append(kids, sg.EdgeExtend(e))
+					addKid(sg.EdgeExtend(e))
 				}
 			}
 		}
