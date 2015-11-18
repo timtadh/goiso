@@ -396,7 +396,7 @@ func (sg *SubGraph) Lattice() *Lattice {
 }
 
 // See SubGraph.Serialize for the format
-func DeserializeSubGraph(g *Graph, bytes, key []byte) *SubGraph {
+func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Println(string(debug.Stack()))
@@ -409,7 +409,6 @@ func DeserializeSubGraph(g *Graph, bytes, key []byte) *SubGraph {
 	lenE := binary.LittleEndian.Uint32(bytes[8:12])
 	if mark != 0xaaaaaaaa {
 		log.Println("not a serialized subgraph")
-		log.Println("key>", key)
 		log.Println("value>", bytes)
 		panic(fmt.Errorf("Not a serialized subgraph"))
 	}
