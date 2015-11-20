@@ -270,7 +270,7 @@ func (sg *SubGraph) RemoveEdge(edgeIdx int) *SubGraph {
 	return canonSubGraph(sg.G, &V, &E)
 }
 
-func (sg *SubGraph) connected() bool {
+func (sg *SubGraph) Connected() bool {
 	pop := func(stack []int) (int, []int) {
 		idx := stack[len(stack)-1]
 		stack = stack[0:len(stack)-1]
@@ -301,6 +301,36 @@ func (sg *SubGraph) connected() bool {
 	return len(processed) == len(sg.V)
 }
 
+func (sg *SubGraph) SubGraphs() []*SubGraph {
+	set := make(map[string]bool, len(sg.V))
+	parents := make([]*SubGraph, 0, len(sg.V))
+	addParent := func(parent *SubGraph) {
+		label := string(parent.ShortLabel())
+		if _, has := set[label]; !has {
+			set[label] = true
+			parents = append(parents, parent)
+		}
+	}
+	for i := range sg.E {
+		if len(sg.V) == 2 && len(sg.E) == 1 {
+			a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
+			b := sg.G.SubGraph([]int{sg.V[sg.E[0].Targ].Id}, nil)
+			addParent(a)
+			addParent(b)
+			continue
+		} else if len(sg.V) == 1 && len(sg.E) == 1 {
+			a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
+			addParent(a)
+			continue
+		}
+		p := sg.RemoveEdge(i)
+		if p.Connected() {
+			addParent(p)
+		}
+	}
+	return parents
+}
+
 func (sg *SubGraph) Lattice() *Lattice {
 	rlattice := make([]*SubGraph, 0, len(sg.E))
 	pop := func(queue []*SubGraph) (*SubGraph, []*SubGraph) {
@@ -308,35 +338,6 @@ func (sg *SubGraph) Lattice() *Lattice {
 		copy(queue[0:len(queue)-1],queue[1:len(queue)])
 		queue = queue[0:len(queue)-1]
 		return sg, queue
-	}
-	parents := func(sg *SubGraph) []*SubGraph {
-		set := make(map[string]bool, len(sg.V))
-		parents := make([]*SubGraph, 0, len(sg.V))
-		addParent := func(parent *SubGraph) {
-			label := string(parent.ShortLabel())
-			if _, has := set[label]; !has {
-				set[label] = true
-				parents = append(parents, parent)
-			}
-		}
-		for i := range sg.E {
-			if len(sg.V) == 2 && len(sg.E) == 1 {
-				a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
-				b := sg.G.SubGraph([]int{sg.V[sg.E[0].Targ].Id}, nil)
-				addParent(a)
-				addParent(b)
-				continue
-			} else if len(sg.V) == 1 && len(sg.E) == 1 {
-				a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
-				addParent(a)
-				continue
-			}
-			p := sg.RemoveEdge(i)
-			if p.connected() {
-				addParent(p)
-			}
-		}
-		return parents
 	}
 	kids := func(sg *SubGraph) []*SubGraph {
 		set := make(map[string]bool, len(sg.V))
@@ -369,7 +370,7 @@ func (sg *SubGraph) Lattice() *Lattice {
 		sg, queue = pop(queue)
 		queued[string(sg.ShortLabel())] = true
 		rlattice = append(rlattice, sg)
-		for _, psg := range parents(sg) {
+		for _, psg := range sg.SubGraphs() {
 			l := string(psg.ShortLabel())
 			if _, has := queued[l]; !has {
 				queue = append(queue, psg)
