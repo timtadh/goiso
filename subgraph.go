@@ -313,13 +313,13 @@ func (sg *SubGraph) SubGraphs() []*SubGraph {
 	}
 	for i := range sg.E {
 		if len(sg.V) == 2 && len(sg.E) == 1 {
-			a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
-			b := sg.G.SubGraph([]int{sg.V[sg.E[0].Targ].Id}, nil)
+			a := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
+			b := sg.G.VertexSubGraph(sg.V[sg.E[0].Targ].Id)
 			addParent(a)
 			addParent(b)
 			continue
 		} else if len(sg.V) == 1 && len(sg.E) == 1 {
-			a := sg.G.SubGraph([]int{sg.V[sg.E[0].Src].Id}, nil)
+			a := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
 			addParent(a)
 			continue
 		}

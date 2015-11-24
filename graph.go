@@ -134,6 +134,12 @@ func (g *Graph) SubGraph(vids []int, filtered_edges map[string]bool) *SubGraph {
 	return sg
 }
 
+func (g *Graph) VertexSubGraph(vid int) *SubGraph {
+	V := g.find_vertices([]int{vid})
+	sg := canonSubGraph(g, &V, &[]Edge{})
+	return sg
+}
+
 func (g *Graph) find_vertices(vids []int) []Vertex {
 	V := make([]Vertex, 0, len(vids))
 	for i, vid := range vids {
