@@ -39,7 +39,9 @@ type ColoredArc struct {
 	Color int
 }
 
-func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
+// sg is the new subgraph in canonical order
+// canonized indicates if the V, E ordering was given in canonical order
+func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) (sg *SubGraph, canonized bool) {
 	if len(*V) == 1 && len(*E) == 0 {
 		sg := &SubGraph{
 			V: *V,
@@ -53,10 +55,10 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		sg.Kids[0] = make([]*Edge, 0)
 		sg.Parents[0] = make([]*Edge, 0)
 		sg.vertexIndex[sg.V[0].Id] = &sg.V[0]
-		return sg
+		return sg, true
 	}
 	bMap := makeBlissMap(V, E)
-	sg := &SubGraph{
+	sg = &SubGraph{
 		G:           g,
 		V:           make([]Vertex, len(*V)),
 		E:           make([]Edge, len(*E)),
@@ -71,7 +73,7 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 	for i := range sg.Parents {
 		sg.Parents[i] = make([]*Edge, 0, 5)
 	}
-	vord, eord := bMap.canonicalPermutation(len(*V), len(*E))
+	vord, eord, canonized := bMap.canonicalPermutation(len(*V), len(*E))
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
 		sg.V[j] = (*V)[i].Copy(j)
@@ -86,7 +88,7 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) *SubGraph {
 		idArc := ColoredArc{Arc{sg.V[sg.E[i].Src].Id, sg.V[sg.E[i].Targ].Id}, sg.E[i].Color}
 		sg.edgeIndex[idArc] = &sg.E[i]
 	}
-	return sg
+	return sg, canonized
 }
 
 // This is a useful method for finding out if the subgraph has a
@@ -135,7 +137,7 @@ func (sg *SubGraph) Equals(o *SubGraph) bool {
 // G.Idx in vids to the extension and all edges contained in the parent
 // graph. If you want to add an edge at a time use EdgeExtend.
 // Note: this will not modify the current subgraph in any way.
-func (sg *SubGraph) Extend(vids ...int) *SubGraph {
+func (sg *SubGraph) Extend(vids ...int) (*SubGraph, bool) {
 	avids := make([]int, 0, len(sg.V)+len(vids))
 	for _, v := range sg.V {
 		avids = append(avids, v.Id)
@@ -153,7 +155,7 @@ func (sg *SubGraph) Extend(vids ...int) *SubGraph {
 // will be added. The Src and Targ should contain the Idx of the
 // vertices in the original graph. (This becomes the Id field in the
 // SubGraph).
-func (sg *SubGraph) EdgeExtend(edge *Edge) *SubGraph {
+func (sg *SubGraph) EdgeExtend(edge *Edge) (nsg *SubGraph, canonized bool) {
 	avids := make([]int, 0, len(sg.V) + 1)
 	hasTarg := false
 	hasSrc := false
@@ -204,7 +206,7 @@ func (sg *SubGraph) EdgeExtend(edge *Edge) *SubGraph {
 // vertex. It returns a new subgraph which has been canonicalized. If
 // the graph only has two vertices and one edge it will return a graph
 // with only the Src of the edge. The target will be dropped.
-func (sg *SubGraph) RemoveEdge(edgeIdx int) *SubGraph {
+func (sg *SubGraph) RemoveEdge(edgeIdx int) (nsg *SubGraph, canonized bool) {
 	rmSrc := true
 	rmTarg := true
 	edge := &sg.E[edgeIdx]
@@ -313,17 +315,17 @@ func (sg *SubGraph) SubGraphs() []*SubGraph {
 	}
 	for i := range sg.E {
 		if len(sg.V) == 2 && len(sg.E) == 1 {
-			a := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
-			b := sg.G.VertexSubGraph(sg.V[sg.E[0].Targ].Id)
+			a, _ := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
+			b, _ := sg.G.VertexSubGraph(sg.V[sg.E[0].Targ].Id)
 			addParent(a)
 			addParent(b)
 			continue
 		} else if len(sg.V) == 1 && len(sg.E) == 1 {
-			a := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
+			a, _ := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
 			addParent(a)
 			continue
 		}
-		p := sg.RemoveEdge(i)
+		p, _ := sg.RemoveEdge(i)
 		if p.Connected() {
 			addParent(p)
 		}
@@ -342,7 +344,7 @@ func (sg *SubGraph) Lattice() *Lattice {
 	kids := func(sg *SubGraph) []*SubGraph {
 		set := make(map[string]bool, len(sg.V))
 		kids := make([]*SubGraph, 0, len(sg.V))
-		addKid := func(kid *SubGraph) {
+		addKid := func(kid *SubGraph, canonized bool) {
 			label := string(kid.ShortLabel())
 			if _, has := set[label]; !has {
 				set[label] = true

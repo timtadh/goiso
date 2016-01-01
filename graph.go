@@ -127,17 +127,15 @@ func NewGraph(V, E int) Graph {
 // the vertex will be not be the original Id on the graph but rather the
 // Idx to the vertex on the original graph. This allows you to easily
 // recover the embedding.
-func (g *Graph) SubGraph(vids []int, filtered_edges map[string]bool) *SubGraph {
+func (g *Graph) SubGraph(vids []int, filtered_edges map[string]bool) (sg *SubGraph, canonized bool) {
 	V := g.find_vertices(vids)
 	E := g.find_edges(vids, &V, filtered_edges)
-	sg := canonSubGraph(g, &V, &E)
-	return sg
+	return canonSubGraph(g, &V, &E)
 }
 
-func (g *Graph) VertexSubGraph(vid int) *SubGraph {
+func (g *Graph) VertexSubGraph(vid int) (sg *SubGraph, canonized bool) {
 	V := g.find_vertices([]int{vid})
-	sg := canonSubGraph(g, &V, &[]Edge{})
-	return sg
+	return canonSubGraph(g, &V, &[]Edge{})
 }
 
 func (g *Graph) find_vertices(vids []int) []Vertex {
@@ -274,8 +272,8 @@ func (g *Graph) Canonized() bool {
 // Creates a new graph which is the canonical representation. This
 // method does cause the graph to become finizalized as it makes use of
 // CanonicalPermutation.
-func (g *Graph) Canonical() Graph {
-	ng := Graph{
+func (g *Graph) Canonical() (ng Graph, canonized bool) {
+	ng = Graph{
 		V:        make([]Vertex, len(g.V)),
 		E:        make([]Edge, len(g.E)),
 		Kids:     make([][]*Edge, len(g.Kids)),
@@ -295,7 +293,7 @@ func (g *Graph) Canonical() Graph {
 	for i := range ng.Parents {
 		ng.Parents[i] = make([]*Edge, 0, 5)
 	}
-	vord, eord := g.CanonicalPermutation()
+	vord, eord, canonized := g.CanonicalPermutation()
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
 		ng.V[j] = g.V[i].Copy(j)
@@ -305,14 +303,15 @@ func (g *Graph) Canonical() Graph {
 		ng.Kids[vord[g.E[i].Src]] = append(ng.Kids[vord[g.E[i].Src]], &ng.E[j])
 		ng.Parents[vord[g.E[i].Targ]] = append(ng.Parents[vord[g.E[i].Targ]], &ng.E[j])
 	}
-	return ng
+	return ng, canonized
 }
 
 // Computes the canonical (labeling) permutation of the graph. Vord is
 // the mapping from vid->new-vid. Eord is eid->new-eid. Unless you need
-// something special you probably just want to use Canonical(). Note:
-// this method does finalize the graph as it calls into bliss.
-func (g *Graph) CanonicalPermutation() (Vord, Eord []int) {
+// something special you probably just want to use Canonical(). canonized
+// is true if the graph is already in canonical form.
+// Note: this method does finalize the graph as it calls into bliss.
+func (g *Graph) CanonicalPermutation() (Vord, Eord []int, canonized bool) {
 	if !g.closed {
 		g.Finalize()
 	}
@@ -384,13 +383,21 @@ func (bm *blissMap) blissGraph() *bliss.BlissGraph {
 	return bg
 }
 
-func (bm *blissMap) canonicalPermutation(V, E int) (Vord, Eord []int) {
+// Vord [original-index] -> new-index of vertices
+// Eord [original-index] -> new-index of edges
+// canonized is true if the graph was already in canonical order
+// canonized is false otherwise
+func (bm *blissMap) canonicalPermutation(V, E int) (Vord, Eord []int, canonized bool) {
 	bg := bm.blissGraph()
 	defer bg.Release()
 	P := bg.CanonicalPermutation()
 	VP := make(perms, 0, V)
 	EP := make(perms, 0, E)
+	canonized = true
 	for i, p := range P {
+		if uint(i) != p {
+			canonized = false
+		}
 		v := bm.V[i]
 		if v.edge {
 			EP = append(EP, perm{v.idx, int(p)})
@@ -408,5 +415,5 @@ func (bm *blissMap) canonicalPermutation(V, E int) (Vord, Eord []int) {
 	for p, ep := range EP {
 		Eord[ep.idx] = p
 	}
-	return Vord, Eord
+	return Vord, Eord, canonized
 }
