@@ -304,9 +304,20 @@ func (sg *SubGraph) Connected() bool {
 }
 
 func (sg *SubGraph) SubGraphs() []*SubGraph {
+	return sg.subGraphs(false)
+}
+
+func (sg *SubGraph) CanonSubGraphs() []*SubGraph {
+	return sg.subGraphs(true)
+}
+
+func (sg *SubGraph) subGraphs(checkCanon bool) []*SubGraph {
 	set := make(map[string]bool, len(sg.V))
 	parents := make([]*SubGraph, 0, len(sg.V))
-	addParent := func(parent *SubGraph) {
+	addParent := func(parent *SubGraph, parentCanonized bool) {
+		if checkCanon && !parentCanonized {
+			return
+		}
 		label := string(parent.ShortLabel())
 		if _, has := set[label]; !has {
 			set[label] = true
@@ -315,19 +326,16 @@ func (sg *SubGraph) SubGraphs() []*SubGraph {
 	}
 	for i := range sg.E {
 		if len(sg.V) == 2 && len(sg.E) == 1 {
-			a, _ := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
-			b, _ := sg.G.VertexSubGraph(sg.V[sg.E[0].Targ].Id)
-			addParent(a)
-			addParent(b)
+			addParent(sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id))
+			addParent(sg.G.VertexSubGraph(sg.V[sg.E[0].Targ].Id))
 			continue
 		} else if len(sg.V) == 1 && len(sg.E) == 1 {
-			a, _ := sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id)
-			addParent(a)
+			addParent(sg.G.VertexSubGraph(sg.V[sg.E[0].Src].Id))
 			continue
 		}
-		p, _ := sg.RemoveEdge(i)
+		p, pCanonized := sg.RemoveEdge(i)
 		if p.Connected() {
-			addParent(p)
+			addParent(p, pCanonized)
 		}
 	}
 	return parents
