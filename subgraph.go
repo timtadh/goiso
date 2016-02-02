@@ -304,20 +304,9 @@ func (sg *SubGraph) Connected() bool {
 }
 
 func (sg *SubGraph) SubGraphs() []*SubGraph {
-	return sg.subGraphs(false)
-}
-
-func (sg *SubGraph) CanonSubGraphs() []*SubGraph {
-	return sg.subGraphs(true)
-}
-
-func (sg *SubGraph) subGraphs(checkCanon bool) []*SubGraph {
 	set := make(map[string]bool, len(sg.V))
 	parents := make([]*SubGraph, 0, len(sg.V))
 	addParent := func(parent *SubGraph, parentCanonized bool) {
-		if checkCanon && !parentCanonized {
-			return
-		}
 		label := string(parent.ShortLabel())
 		if _, has := set[label]; !has {
 			set[label] = true

@@ -138,6 +138,10 @@ func (g *Graph) VertexSubGraph(vid int) (sg *SubGraph, canonized bool) {
 	return canonSubGraph(g, &V, &[]Edge{})
 }
 
+func (g *Graph) EmptySubGraph() (sg *SubGraph, canonized bool) {
+	return canonSubGraph(g, &[]Vertex{}, &[]Edge{})
+}
+
 func (g *Graph) find_vertices(vids []int) []Vertex {
 	V := make([]Vertex, 0, len(vids))
 	for i, vid := range vids {
@@ -410,9 +414,15 @@ func (bm *blissMap) canonicalPermutation(V, E int) (Vord, Eord []int, canonized 
 	Vord = make([]int, V)
 	Eord = make([]int, E)
 	for p, vp := range VP {
+		if canonized && p != vp.idx {
+			panic("not canonized when it should have been!")
+		}
 		Vord[vp.idx] = p
 	}
 	for p, ep := range EP {
+		if canonized && p != ep.idx {
+			panic("not canonized when it should have been!")
+		}
 		Eord[ep.idx] = p
 	}
 	return Vord, Eord, canonized
