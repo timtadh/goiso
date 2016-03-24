@@ -29,6 +29,11 @@ import (
 	"strings"
 )
 
+import (
+	"github.com/timtadh/goiso/bliss"
+)
+
+
 type Lattice struct {
 	V []*SubGraph
 	E []*Arc
@@ -41,31 +46,31 @@ type ColoredArc struct {
 
 // sg is the new subgraph in canonical order
 // canonized indicates if the V, E ordering was given in canonical order
-func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) (sg *SubGraph, canonized bool) {
-	if len(*V) == 1 && len(*E) == 0 {
+func canonSubGraph(g *Graph, V Vertices, E Edges) (sg *SubGraph, canonized bool) {
+	if len(V) == 1 && len(E) == 0 {
 		sg := &SubGraph{
-			V: *V,
-			E: *E,
-			Kids: make([][]*Edge, len(*V)),
-			Parents: make([][]*Edge, len(*V)),
+			V: V,
+			E: E,
+			Kids: make([][]*Edge, len(V)),
+			Parents: make([][]*Edge, len(V)),
 			G: g,
-			vertexIndex: make(map[int]*Vertex, len(*V)),
-			edgeIndex: make(map[ColoredArc]*Edge, len(*E)),
+			vertexIndex: make(map[int]*Vertex, len(V)),
+			edgeIndex: make(map[ColoredArc]*Edge, len(E)),
 		}
 		sg.Kids[0] = make([]*Edge, 0)
 		sg.Parents[0] = make([]*Edge, 0)
 		sg.vertexIndex[sg.V[0].Id] = &sg.V[0]
 		return sg, true
 	}
-	bMap := makeBlissMap(V, E)
+	bMap := bliss.NewMap(len(V), len(E), V.Iterate(), E.Iterate())
 	sg = &SubGraph{
 		G:           g,
-		V:           make([]Vertex, len(*V)),
-		E:           make([]Edge, len(*E)),
-		Kids:        make([][]*Edge, len(*V)),
-		Parents:     make([][]*Edge, len(*V)),
-		edgeIndex:   make(map[ColoredArc]*Edge, len(*E)),
-		vertexIndex: make(map[int]*Vertex, len(*V)),
+		V:           make([]Vertex, len(V)),
+		E:           make([]Edge, len(E)),
+		Kids:        make([][]*Edge, len(V)),
+		Parents:     make([][]*Edge, len(V)),
+		edgeIndex:   make(map[ColoredArc]*Edge, len(E)),
+		vertexIndex: make(map[int]*Vertex, len(V)),
 	}
 	for i := range sg.Kids {
 		sg.Kids[i] = make([]*Edge, 0, 5)
@@ -73,16 +78,16 @@ func canonSubGraph(g *Graph, V *[]Vertex, E *[]Edge) (sg *SubGraph, canonized bo
 	for i := range sg.Parents {
 		sg.Parents[i] = make([]*Edge, 0, 5)
 	}
-	vord, eord, canonized := bMap.canonicalPermutation(len(*V), len(*E))
+	vord, eord, canonized := bMap.CanonicalPermutation()
 	// i is the old vid, j is the new vid
 	for i, j := range vord {
-		sg.V[j] = (*V)[i].Copy(j)
+		sg.V[j] = (V)[i].Copy(j)
 		sg.vertexIndex[sg.V[j].Id] = &sg.V[j]
 	}
 	for i, j := range eord {
-		sg.E[j] = (*E)[i].Copy(j, vord[(*E)[i].Src], vord[(*E)[i].Targ])
-		sg.Kids[vord[(*E)[i].Src]] = append(sg.Kids[vord[(*E)[i].Src]], &sg.E[j])
-		sg.Parents[vord[(*E)[i].Targ]] = append(sg.Parents[vord[(*E)[i].Targ]], &sg.E[j])
+		sg.E[j] = (E)[i].Copy(j, vord[(E)[i].Src], vord[(E)[i].Targ])
+		sg.Kids[vord[(E)[i].Src]] = append(sg.Kids[vord[(E)[i].Src]], &sg.E[j])
+		sg.Parents[vord[(E)[i].Targ]] = append(sg.Parents[vord[(E)[i].Targ]], &sg.E[j])
 	}
 	for i := range sg.E {
 		idArc := ColoredArc{Arc{sg.V[sg.E[i].Src].Id, sg.V[sg.E[i].Targ].Id}, sg.E[i].Color}
@@ -199,7 +204,7 @@ func (sg *SubGraph) EdgeExtend(edge *Edge) (nsg *SubGraph, canonized bool) {
 		Idx: len(E),
 		Color: edge.Color,
 	})
-	return canonSubGraph(sg.G, &V, &E)
+	return canonSubGraph(sg.G, V, E)
 }
 
 // Removes the edge at the given idx and if necessary an attached
@@ -269,7 +274,7 @@ func (sg *SubGraph) RemoveEdge(edgeIdx int) (nsg *SubGraph, canonized bool) {
 		}
 		E = append(E, e.Copy(len(E), adjustIdx(e.Src), adjustIdx(e.Targ)))
 	}
-	return canonSubGraph(sg.G, &V, &E)
+	return canonSubGraph(sg.G, V, E)
 }
 
 func (sg *SubGraph) Connected() bool {

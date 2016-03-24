@@ -52,11 +52,11 @@ import "C"
 
 import "unsafe"
 
-type BlissGraph C.struct_bliss_graph_struct
+type Graph C.struct_bliss_graph_struct
 
 // A context manager which release the graph after the block
 // ends.
-func Graph(nodes int, block func(*BlissGraph)) {
+func Do(nodes int, block func(*Graph)) {
 	g := NewGraph(nodes)
 	defer g.Release()
 	block(g)
@@ -65,21 +65,21 @@ func Graph(nodes int, block func(*BlissGraph)) {
 // Constructs a new bliss graph object. Note, this
 // is a directed graph.
 // nodes = the number of nodes to add with color 0
-func NewGraph(nodes int) *BlissGraph {
+func NewGraph(nodes int) *Graph {
 	n := C.uint(uint(nodes))
-	return (*BlissGraph)(C.bliss_new(n))
+	return (*Graph)(C.bliss_new(n))
 }
 
 // Release the graph. You need to manage the memory manually
 // as the graph lives in C land.
-func (g *BlissGraph) Release() {
+func (g *Graph) Release() {
 	G := (*C.struct_bliss_graph_struct)(g)
 	C.bliss_release(G)
 }
 
 // Add a new vertex of the given color to the graph.
 // The vertex id will be returned.
-func (g *BlissGraph) AddVertex(color uint) uint {
+func (g *Graph) AddVertex(color uint) uint {
 	c := C.uint(color)
 	G := (*C.struct_bliss_graph_struct)(g)
 	return uint(C.bliss_add_vertex(G, c))
@@ -87,7 +87,7 @@ func (g *BlissGraph) AddVertex(color uint) uint {
 
 // Add a new edge between the two vertex ids
 // Since this is a directed graph: a -> b
-func (g *BlissGraph) AddEdge(a, b uint) {
+func (g *Graph) AddEdge(a, b uint) {
 	x := C.uint(a)
 	y := C.uint(b)
 	G := (*C.struct_bliss_graph_struct)(g)
@@ -109,7 +109,7 @@ func (g *BlissGraph) AddEdge(a, b uint) {
 //
 // If you are planning the compute and store the canonical
 // labeling then the first option is better.
-func (a *BlissGraph) Cmp(b *BlissGraph) int {
+func (a *Graph) Cmp(b *Graph) int {
 	g1 := (*C.struct_bliss_graph_struct)(a)
 	g2 := (*C.struct_bliss_graph_struct)(b)
 	return int(C.bliss_cmp(g1, g2))
@@ -119,10 +119,10 @@ func (a *BlissGraph) Cmp(b *BlissGraph) int {
 // the canonical labeling anew each time. You can compute
 // the labeling once and use the Cmp function to compare the
 // graphs instead to save time.
-func (a *BlissGraph) Iso(b *BlissGraph) bool {
+func (a *Graph) Iso(b *Graph) bool {
 	var cmp bool
-	a.CanonicalCtx(func(g1 *BlissGraph) {
-		b.CanonicalCtx(func(g2 *BlissGraph) {
+	a.CanonicalCtx(func(g1 *Graph) {
+		b.CanonicalCtx(func(g2 *Graph) {
 			cmp = g1.Cmp(g2) == 0
 		})
 	})
@@ -130,18 +130,18 @@ func (a *BlissGraph) Iso(b *BlissGraph) bool {
 }
 
 // Compute the canonical labeling. This will function will
-// return a new *BlissGraph. If you no longer need the
+// return a new *Graph. If you no longer need the
 // original be sure to release it with. Release(). When
 // you are done with the canonical graph be sure to release
 // it as well.
-func (g *BlissGraph) Canonical() *BlissGraph {
+func (g *Graph) Canonical() *Graph {
 	G := (*C.struct_bliss_graph_struct)(g)
 	p := C.canlabel(G)
-	return (*BlissGraph)(C.bliss_permute(G, p))
+	return (*Graph)(C.bliss_permute(G, p))
 }
 
 // A context manager for Canonical graph.
-func (g *BlissGraph) CanonicalCtx(block func(*BlissGraph)) {
+func (g *Graph) CanonicalCtx(block func(*Graph)) {
 	can := g.Canonical()
 	defer can.Release()
 	block(can)
@@ -151,7 +151,7 @@ func (g *BlissGraph) CanonicalCtx(block func(*BlissGraph)) {
 // mapping[original-index-for-v] -> new-index-for-v
 // If you want to preserve the orginal vertex id's or know how the canonical
 // labeling actually maps to the original graph you need to use this method.
-func (g *BlissGraph) CanonicalPermutation() (mapping []uint) {
+func (g *Graph) CanonicalPermutation() (mapping []uint) {
 	G := (*C.struct_bliss_graph_struct)(g)
 	N := uint(C.bliss_get_nof_vertices(G))
 	p := C.canlabel(G)

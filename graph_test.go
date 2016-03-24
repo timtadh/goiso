@@ -42,8 +42,8 @@ func TestCanon(t *testing.T) {
 	g2.AddEdge(w, y, "purple")
 	g2.AddEdge(x, z, "purple")
 
-	can := g.Canonical()
-	can2 := g2.Canonical()
+	can, _ := g.Canonical()
+	can2, _ := g2.Canonical()
 	e := []int{7, 12, 9, 57}
 	for i, vid := range e {
 		if can.V[i].Id != vid {
@@ -88,7 +88,7 @@ func TestSubgraph(t *testing.T) {
 		g2.AddEdge(w, y, "purple")
 		g2.AddEdge(x, z, "purple")
 	}
-	can2 := g2.Canonical()
+	can2, _ := g2.Canonical()
 
 	g3 := NewGraph(4, 4)
 	{
@@ -101,13 +101,13 @@ func TestSubgraph(t *testing.T) {
 		g3.AddEdge(a, c, "purple")
 		g3.AddEdge(b, d, "purple")
 	}
-	can3 := g2.Canonical()
+	can3, _ := g2.Canonical()
 
 	t.Log(can2.Label())
 	t.Log(can3.Label())
 
-	sg1 := g.SubGraph([]int{0, 1, 2, 3}, nil)
-	sg2 := g.SubGraph([]int{4, 5, 6, 7}, nil)
+	sg1, _ := g.SubGraph([]int{0, 1, 2, 3}, nil)
+	sg2, _ := g.SubGraph([]int{4, 5, 6, 7}, nil)
 	t.Log(sg1.Label())
 	t.Log(sg2.Label())
 	if can2.Label() != can3.Label() {

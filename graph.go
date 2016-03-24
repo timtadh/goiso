@@ -21,7 +21,6 @@ package goiso
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
@@ -30,8 +29,8 @@ import (
 )
 
 type Graph struct {
-	V         []Vertex
-	E         []Edge
+	V         Vertices
+	E         Edges
 	Kids      [][]*Edge
 	Parents    [][]*Edge
 	Colors    []string
@@ -39,28 +38,20 @@ type Graph struct {
 	colorFreq []int
 	closed    bool
 	canon     bool
-	blissMap  *blissMap
+	blissMap  *bliss.Map
 }
 
+type Vertices []Vertex
+type Edges []Edge
+
 type SubGraph struct {
-	V       []Vertex
-	E       []Edge
+	V       Vertices
+	E       Edges
 	Kids    [][]*Edge
 	Parents [][]*Edge
 	G       *Graph
 	vertexIndex map[int]*Vertex
 	edgeIndex map[ColoredArc]*Edge
-}
-
-type blissMap struct {
-	V []blissVertex
-	E []Arc
-}
-
-type blissVertex struct {
-	edge  bool
-	idx   int
-	color int
 }
 
 type Vertex struct {
@@ -98,15 +89,34 @@ func (e *Edge) Copy(idx, src, targ int) Edge {
 	}
 }
 
-type perm struct {
-	idx, p int
+func (V Vertices) Iterate() (vi bliss.VertexIterator) {
+	i := 0
+	vi = func() (color int, _ bliss.VertexIterator) {
+		if i >= len(V) {
+			return 0, nil
+		}
+		color = V[i].Color
+		i++
+		return color, vi
+	}
+	return vi
 }
 
-type perms []perm
+func (E Edges) Iterate() (ei bliss.EdgeIterator) {
+	i := 0
+	ei = func() (src, targ, color int, _ bliss.EdgeIterator) {
+		if i >= len(E) {
+			return 0, 0, 0, nil
+		}
+		src = E[i].Src
+		targ = E[i].Targ
+		color = E[i].Color
+		i++
+		return src, targ, color, ei
+	}
+	return ei
+}
 
-func (self perms) Len() int           { return len(self) }
-func (self perms) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
-func (self perms) Less(i, j int) bool { return self[i].p < self[j].p }
 
 // Construct a new graph with V vertices and E edges.
 func NewGraph(V, E int) Graph {
@@ -129,17 +139,17 @@ func NewGraph(V, E int) Graph {
 // recover the embedding.
 func (g *Graph) SubGraph(vids []int, filtered_edges map[string]bool) (sg *SubGraph, canonized bool) {
 	V := g.find_vertices(vids)
-	E := g.find_edges(vids, &V, filtered_edges)
-	return canonSubGraph(g, &V, &E)
+	E := g.find_edges(vids, V, filtered_edges)
+	return canonSubGraph(g, V, E)
 }
 
 func (g *Graph) VertexSubGraph(vid int) (sg *SubGraph, canonized bool) {
 	V := g.find_vertices([]int{vid})
-	return canonSubGraph(g, &V, &[]Edge{})
+	return canonSubGraph(g, V, []Edge{})
 }
 
 func (g *Graph) EmptySubGraph() (sg *SubGraph, canonized bool) {
-	return canonSubGraph(g, &[]Vertex{}, &[]Edge{})
+	return canonSubGraph(g, []Vertex{}, []Edge{})
 }
 
 func (g *Graph) find_vertices(vids []int) []Vertex {
@@ -152,7 +162,7 @@ func (g *Graph) find_vertices(vids []int) []Vertex {
 	return V
 }
 
-func (g *Graph) find_edges(vids []int, V *[]Vertex, filtered_edges map[string]bool) []Edge {
+func (g *Graph) find_edges(vids []int, V []Vertex, filtered_edges map[string]bool) []Edge {
 	vset := make(map[int]int)
 	for i, vid := range vids {
 		vset[vid] = i
@@ -164,7 +174,7 @@ func (g *Graph) find_edges(vids []int, V *[]Vertex, filtered_edges map[string]bo
 				continue
 			}
 			if j, has := vset[e.Targ]; has {
-				edges = append(edges, e.Copy(len(edges), (*V)[i].Idx, (*V)[j].Idx))
+				edges = append(edges, e.Copy(len(edges), (V)[i].Idx, (V)[j].Idx))
 			}
 		}
 	}
@@ -237,36 +247,7 @@ func (g *Graph) String() string {
 // this graph and the graph is bliss has been constructed.
 func (g *Graph) Finalize() {
 	g.closed = true
-	g.blissMap = makeBlissMap(&g.V, &g.E)
-}
-
-func makeBlissMap(gV *[]Vertex, gE *[]Edge) *blissMap {
-	V := make([]blissVertex, 0, len(*gV)+len(*gE))
-	E := make([]Arc, 0, len(*gE)*2)
-	for _, v := range *gV {
-		V = append(V, blissVertex{
-			edge:  false,
-			idx:   v.Idx,
-			color: v.Color,
-		})
-	}
-	for _, e := range *gE {
-		eid := len(V)
-		V = append(V, blissVertex{
-			edge:  true,
-			idx:   e.Idx,
-			color: e.Color,
-		})
-		E = append(E, Arc{
-			Src:  e.Src,
-			Targ: eid,
-		})
-		E = append(E, Arc{
-			Src:  eid,
-			Targ: e.Targ,
-		})
-	}
-	return &blissMap{V, E}
+	g.blissMap = bliss.NewMap(len(g.V), len(g.E), g.V.Iterate(), g.E.Iterate())
 }
 
 func (g *Graph) Canonized() bool {
@@ -319,7 +300,7 @@ func (g *Graph) CanonicalPermutation() (Vord, Eord []int, canonized bool) {
 	if !g.closed {
 		g.Finalize()
 	}
-	return g.blissMap.canonicalPermutation(len(g.V), len(g.E))
+	return g.blissMap.CanonicalPermutation()
 }
 
 // Adds a vertex. The id is not used by this package but is preserved.
@@ -376,54 +357,3 @@ func (g *Graph) addColor(label string) int {
 	return cid
 }
 
-func (bm *blissMap) blissGraph() *bliss.BlissGraph {
-	bg := bliss.NewGraph(0)
-	for _, v := range bm.V {
-		bg.AddVertex(uint(v.color))
-	}
-	for _, e := range bm.E {
-		bg.AddEdge(uint(e.Src), uint(e.Targ))
-	}
-	return bg
-}
-
-// Vord [original-index] -> new-index of vertices
-// Eord [original-index] -> new-index of edges
-// canonized is true if the graph was already in canonical order
-// canonized is false otherwise
-func (bm *blissMap) canonicalPermutation(V, E int) (Vord, Eord []int, canonized bool) {
-	bg := bm.blissGraph()
-	defer bg.Release()
-	P := bg.CanonicalPermutation()
-	VP := make(perms, 0, V)
-	EP := make(perms, 0, E)
-	canonized = true
-	for i, p := range P {
-		if uint(i) != p {
-			canonized = false
-		}
-		v := bm.V[i]
-		if v.edge {
-			EP = append(EP, perm{v.idx, int(p)})
-		} else {
-			VP = append(VP, perm{v.idx, int(p)})
-		}
-	}
-	sort.Sort(VP)
-	sort.Sort(EP)
-	Vord = make([]int, V)
-	Eord = make([]int, E)
-	for p, vp := range VP {
-		if canonized && p != vp.idx {
-			panic("not canonized when it should have been!")
-		}
-		Vord[vp.idx] = p
-	}
-	for p, ep := range EP {
-		if canonized && p != ep.idx {
-			panic("not canonized when it should have been!")
-		}
-		Eord[ep.idx] = p
-	}
-	return Vord, Eord, canonized
-}

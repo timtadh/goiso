@@ -21,8 +21,8 @@ All work is licensed under the GPL Version 3. Please respect the license.
 
 Copyright Holders:
 
-      Copyright (c) 2006-2011 Tommi Junttila
-      Copyright (c) 2014 Tim Henderson
+      Copyright (c) 2006-2011 Tommi Junttila (C++ Bliss Code)
+      Copyright (c) 2014-2016 Tim Henderson (Go Wrapper)
 
 ### Usage
 
@@ -36,49 +36,55 @@ You can read the docs over at godoc:
 
 import
 
-    import "github.com/timtadh/goiso/bliss"
+```go
+import "github.com/timtadh/goiso/bliss"
+```
 
 api example
 
-    bliss.Graph(0, func(g1 *BlissGraph) {
-        a := g1.AddVertex(1)
-        b := g1.AddVertex(1)
-        c := g1.AddVertex(2)
-        d := g1.AddVertex(2)
-        g1.AddEdge(a, b)
-        g1.AddEdge(c, d)
-        g1.AddEdge(a, c)
-        g1.AddEdge(b, d)
-        Graph(0, func(g2 *BlissGraph) {
-            a := g2.AddVertex(1)
-            b := g2.AddVertex(1)
-            c := g2.AddVertex(2)
-            d := g2.AddVertex(2)
-            g2.AddEdge(b, a)
-            g2.AddEdge(d, c)
-            g2.AddEdge(a, c)
-            g2.AddEdge(b, d)
-            if g1.Cmp(g2) != -1 {
-                t.Error("unexpected compare result")
-            }
-            if !g1.Iso(g2) {
-                t.Error("should have been isomorphic")
-            }
-        })
-    })
+```go
+bliss.Do(0, func(g1 *Graph) {
+	a := g1.AddVertex(1)
+	b := g1.AddVertex(1)
+	c := g1.AddVertex(2)
+	d := g1.AddVertex(2)
+	g1.AddEdge(a, b)
+	g1.AddEdge(c, d)
+	g1.AddEdge(a, c)
+	g1.AddEdge(b, d)
+	bliss.Do(0, func(g2 *Graph) {
+		a := g2.AddVertex(1)
+		b := g2.AddVertex(1)
+		c := g2.AddVertex(2)
+		d := g2.AddVertex(2)
+		g2.AddEdge(b, a)
+		g2.AddEdge(d, c)
+		g2.AddEdge(a, c)
+		g2.AddEdge(b, d)
+		if g1.Cmp(g2) != -1 {
+			t.Error("unexpected compare result")
+		}
+		if !g1.Iso(g2) {
+			t.Error("should have been isomorphic")
+		}
+	})
+})
+```
 
 Or with manual memory management:
 
-    g1 := bliss.NewGraph(0)
-    defer g1.Release()
-    a := g1.AddVertex(1)
-    b := g1.AddVertex(1)
-    c := g1.AddVertex(2)
-    d := g1.AddVertex(2)
-    g1.AddEdge(a, b)
-    g1.AddEdge(c, d)
-    g1.AddEdge(a, c)
-    g1.AddEdge(b, d)
+```go
+g1 := bliss.NewGraph(0)
+defer g1.Release()
+a := g1.AddVertex(1)
+b := g1.AddVertex(1)
+c := g1.AddVertex(2)
+d := g1.AddVertex(2)
+g1.AddEdge(a, b)
+g1.AddEdge(c, d)
+g1.AddEdge(a, c)
+g1.AddEdge(b, d)
 
-    // do stuff with g1
+// do stuff with g1
+```
 
