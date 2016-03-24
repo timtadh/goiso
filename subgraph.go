@@ -33,7 +33,6 @@ import (
 	"github.com/timtadh/goiso/bliss"
 )
 
-
 type Lattice struct {
 	V []*SubGraph
 	E []*Arc
@@ -49,13 +48,13 @@ type ColoredArc struct {
 func canonSubGraph(g *Graph, V Vertices, E Edges) (sg *SubGraph, canonized bool) {
 	if len(V) == 1 && len(E) == 0 {
 		sg := &SubGraph{
-			V: V,
-			E: E,
-			Kids: make([][]*Edge, len(V)),
-			Parents: make([][]*Edge, len(V)),
-			G: g,
+			V:           V,
+			E:           E,
+			Kids:        make([][]*Edge, len(V)),
+			Parents:     make([][]*Edge, len(V)),
+			G:           g,
 			vertexIndex: make(map[int]*Vertex, len(V)),
-			edgeIndex: make(map[ColoredArc]*Edge, len(E)),
+			edgeIndex:   make(map[ColoredArc]*Edge, len(E)),
 		}
 		sg.Kids[0] = make([]*Edge, 0)
 		sg.Parents[0] = make([]*Edge, 0)
@@ -161,7 +160,7 @@ func (sg *SubGraph) Extend(vids ...int) (*SubGraph, bool) {
 // vertices in the original graph. (This becomes the Id field in the
 // SubGraph).
 func (sg *SubGraph) EdgeExtend(edge *Edge) (nsg *SubGraph, canonized bool) {
-	avids := make([]int, 0, len(sg.V) + 1)
+	avids := make([]int, 0, len(sg.V)+1)
 	hasTarg := false
 	hasSrc := false
 	var src int = -1
@@ -192,16 +191,16 @@ func (sg *SubGraph) EdgeExtend(edge *Edge) (nsg *SubGraph, canonized bool) {
 		panic(fmt.Errorf("Src or Targ not in graph"))
 	}
 	V := sg.G.find_vertices(avids)
-	E := make([]Edge, 0, len(sg.E) + 1)
+	E := make([]Edge, 0, len(sg.E)+1)
 	for _, e := range sg.E {
 		E = append(E, e.Copy(len(E), e.Src, e.Targ))
 	}
 	E = append(E, Edge{
 		Arc: Arc{
-			Src: src,
+			Src:  src,
 			Targ: targ,
 		},
-		Idx: len(E),
+		Idx:   len(E),
 		Color: edge.Color,
 	})
 	return canonSubGraph(sg.G, V, E)
@@ -267,7 +266,7 @@ func (sg *SubGraph) RemoveEdge(edgeIdx int) (nsg *SubGraph, canonized bool) {
 		avids = append(avids, v.Id)
 	}
 	V := sg.G.find_vertices(avids)
-	E := make([]Edge, 0, len(sg.E) + 1)
+	E := make([]Edge, 0, len(sg.E)+1)
 	for idx, e := range sg.E {
 		if idx == edgeIdx {
 			continue
@@ -280,7 +279,7 @@ func (sg *SubGraph) RemoveEdge(edgeIdx int) (nsg *SubGraph, canonized bool) {
 func (sg *SubGraph) Connected() bool {
 	pop := func(stack []int) (int, []int) {
 		idx := stack[len(stack)-1]
-		stack = stack[0:len(stack)-1]
+		stack = stack[0 : len(stack)-1]
 		return idx, stack
 	}
 	visit := func(idx int, stack []int, processed map[int]bool) []int {
@@ -339,8 +338,8 @@ func (sg *SubGraph) Lattice() *Lattice {
 	rlattice := make([]*SubGraph, 0, len(sg.E))
 	pop := func(queue []*SubGraph) (*SubGraph, []*SubGraph) {
 		sg := queue[0]
-		copy(queue[0:len(queue)-1],queue[1:len(queue)])
-		queue = queue[0:len(queue)-1]
+		copy(queue[0:len(queue)-1], queue[1:len(queue)])
+		queue = queue[0 : len(queue)-1]
 		return sg, queue
 	}
 	kids := func(sg *SubGraph) []*SubGraph {
@@ -383,10 +382,10 @@ func (sg *SubGraph) Lattice() *Lattice {
 		}
 	}
 	lattice := make([]*SubGraph, 0, len(rlattice))
-	labels := make(map[string]int,len(lattice))
-	for i := len(rlattice)-1; i >= 0; i-- {
+	labels := make(map[string]int, len(lattice))
+	for i := len(rlattice) - 1; i >= 0; i-- {
 		lattice = append(lattice, rlattice[i])
-		labels[string(lattice[len(lattice)-1].ShortLabel())] = len(lattice)-1
+		labels[string(lattice[len(lattice)-1].ShortLabel())] = len(lattice) - 1
 	}
 	edges := make([]*Arc, 0, len(lattice)*2)
 	for i, sg := range lattice {
@@ -435,14 +434,14 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 		e := s + 4
 		id := int(binary.LittleEndian.Uint32(bytes[s:e]))
 		v := Vertex{
-			Idx: i,
-			Id: id,
+			Idx:   i,
+			Id:    id,
 			Color: g.V[id].Color,
 		}
 		V[i] = v
 		vertexIndex[v.Id] = &V[i]
 	}
-	off += len(V)*4
+	off += len(V) * 4
 	for i := 0; i < int(lenE); i++ {
 		s := off + i*12
 		e := s + 4
@@ -455,10 +454,10 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 		color := int(binary.LittleEndian.Uint32(bytes[s:e]))
 		edge := Edge{
 			Arc: Arc{
-				Src: src,
+				Src:  src,
 				Targ: targ,
 			},
-			Idx: i,
+			Idx:   i,
 			Color: color,
 		}
 		E[i] = edge
@@ -484,7 +483,7 @@ func DeserializeSubGraph(g *Graph, bytes []byte) *SubGraph {
 // edges are in idx order.
 // the order is the canonical order.
 func (sg *SubGraph) Serialize() []byte {
-	bytes := make([]byte, 12 + len(sg.V)*4 + len(sg.E)*12)
+	bytes := make([]byte, 12+len(sg.V)*4+len(sg.E)*12)
 	binary.LittleEndian.PutUint32(bytes[0:4], uint32(0xaaaaaaaa))
 	binary.LittleEndian.PutUint32(bytes[4:8], uint32(len(sg.V)))
 	binary.LittleEndian.PutUint32(bytes[8:12], uint32(len(sg.E)))
@@ -494,7 +493,7 @@ func (sg *SubGraph) Serialize() []byte {
 		e := s + 4
 		binary.LittleEndian.PutUint32(bytes[s:e], uint32(v.Id)) // Idx in *Graph
 	}
-	off += len(sg.V)*4
+	off += len(sg.V) * 4
 	for i, edge := range sg.E {
 		s := off + i*12
 		e := s + 4
@@ -520,7 +519,7 @@ func (sg *SubGraph) ShortLabel() []byte {
 		e := s + 4
 		binary.BigEndian.PutUint32(label[s:e], uint32(v.Color))
 	}
-	off += len(sg.V)*4
+	off += len(sg.V) * 4
 	for i, edge := range sg.E {
 		s := off + i*12
 		e := s + 4
@@ -567,7 +566,7 @@ func (sg *SubGraph) String() string {
 func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string {
 	V := make([]string, 0, len(sg.V))
 	E := make([]string, 0, len(sg.E))
-	safeStr := func(i interface{}) string{
+	safeStr := func(i interface{}) string {
 		s := fmt.Sprint(i)
 		s = strings.Replace(s, "\n", "\\n", -1)
 		s = strings.Replace(s, "\"", "\\\"", -1)
@@ -614,9 +613,8 @@ func (sg *SubGraph) StringWithAttrs(attrs map[int]map[string]interface{}) string
 `, strings.Join(V, "\n    "), strings.Join(E, "\n    "))
 }
 
-
 func (sg *SubGraph) VEG(attrs map[int]map[string]interface{}) []byte {
-	L := make([][]byte, 0, len(sg.V) + len(sg.E))
+	L := make([][]byte, 0, len(sg.V)+len(sg.E))
 	for i := range sg.V {
 		L = append(L, sg.vegVertex(&sg.V[i], attrs[sg.V[i].Id]))
 	}
@@ -655,4 +653,3 @@ func renderJson(obj JsonObject) []byte {
 	}
 	return j
 }
-

@@ -32,7 +32,7 @@ type Graph struct {
 	V         Vertices
 	E         Edges
 	Kids      [][]*Edge
-	Parents    [][]*Edge
+	Parents   [][]*Edge
 	Colors    []string
 	colorSet  map[string]int
 	colorFreq []int
@@ -45,13 +45,13 @@ type Vertices []Vertex
 type Edges []Edge
 
 type SubGraph struct {
-	V       Vertices
-	E       Edges
-	Kids    [][]*Edge
-	Parents [][]*Edge
-	G       *Graph
+	V           Vertices
+	E           Edges
+	Kids        [][]*Edge
+	Parents     [][]*Edge
+	G           *Graph
 	vertexIndex map[int]*Vertex
-	edgeIndex map[ColoredArc]*Edge
+	edgeIndex   map[ColoredArc]*Edge
 }
 
 type Vertex struct {
@@ -116,7 +116,6 @@ func (E Edges) Iterate() (ei bliss.EdgeIterator) {
 	}
 	return ei
 }
-
 
 // Construct a new graph with V vertices and E edges.
 func NewGraph(V, E int) Graph {
@@ -356,4 +355,3 @@ func (g *Graph) addColor(label string) int {
 	g.colorFreq = append(g.colorFreq, 1)
 	return cid
 }
-

@@ -7,14 +7,14 @@ import (
 type Map struct {
 	LenV int // number of vertices in the original graph
 	LenE int // number of edges in the original graph
-	V []Vertex
-	E []Arc
+	V    []Vertex
+	E    []Arc
 }
 
 type Vertex struct {
-	IsEdge  bool
-	Idx   int
-	Color int
+	IsEdge bool
+	Idx    int
+	Color  int
 }
 
 type Arc struct {
@@ -24,13 +24,12 @@ type Arc struct {
 type VertexIterator func() (color int, vi VertexIterator)
 type EdgeIterator func() (src, targ, color int, ei EdgeIterator)
 
-type perm struct { idx, p int }
+type perm struct{ idx, p int }
 type perms []perm
+
 func (self perms) Len() int           { return len(self) }
 func (self perms) Swap(i, j int)      { self[i], self[j] = self[j], self[i] }
 func (self perms) Less(i, j int) bool { return self[i].p < self[j].p }
-
-
 
 func NewMap(lenV, lenE int, vi VertexIterator, ei EdgeIterator) *Map {
 	V := make([]Vertex, 0, lenV+lenE)
@@ -38,9 +37,9 @@ func NewMap(lenV, lenE int, vi VertexIterator, ei EdgeIterator) *Map {
 	vidx := 0
 	for color, vi := vi(); vi != nil; color, vi = vi() {
 		V = append(V, Vertex{
-			IsEdge:  false,
-			Idx:   vidx,
-			Color: color,
+			IsEdge: false,
+			Idx:    vidx,
+			Color:  color,
 		})
 		vidx += 1
 	}
@@ -48,9 +47,9 @@ func NewMap(lenV, lenE int, vi VertexIterator, ei EdgeIterator) *Map {
 	for src, targ, color, ei := ei(); ei != nil; src, targ, color, ei = ei() {
 		eid := len(V)
 		V = append(V, Vertex{
-			IsEdge:  true,
-			Idx:   eidx,
-			Color: color,
+			IsEdge: true,
+			Idx:    eidx,
+			Color:  color,
 		})
 		E = append(E, Arc{
 			Src:  src,
@@ -120,5 +119,3 @@ func (bm *Map) Graph() *Graph {
 	}
 	return bg
 }
-
-
