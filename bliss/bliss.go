@@ -24,26 +24,9 @@ package bliss
 #include <stdio.h>
 #include "bliss_C.h"
 
-
-void
-hook(void *user_param, unsigned int N, const unsigned int *aut) {
-	return;
-}
-
-struct bliss_stats {
-  long double group_size_approx;
-  long unsigned int nof_nodes;
-  long unsigned int nof_leaf_nodes;
-  long unsigned int nof_bad_nodes;
-  long unsigned int nof_canupdates;
-  long unsigned int nof_generators;
-  unsigned long int max_level;
-};
-
 const unsigned int *
 canlabel(BlissGraph *graph) {
-	struct bliss_stats stats;
-	const unsigned int *p = bliss_find_canonical_labeling(graph, hook, NULL, &stats);
+	const unsigned int *p = bliss_find_canonical_labeling(graph, NULL, NULL, NULL);
 	return p;
 }
 

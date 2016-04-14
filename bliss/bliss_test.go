@@ -16,7 +16,7 @@ package bliss
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Bliss.  If not, see <http://www.gnu.org/licenses/>.
+  along with .  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import "testing"
@@ -24,7 +24,7 @@ import "testing"
 import "reflect"
 
 func TestNew(t *testing.T) {
-	Graph(0, func(g *BlissGraph) {
+	Do(0, func(g *Graph) {
 		a := g.AddVertex(1)
 		b := g.AddVertex(1)
 		c := g.AddVertex(2)
@@ -37,7 +37,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestPermutation(t *testing.T) {
-	Graph(0, func(g *BlissGraph) {
+	Do(0, func(g *Graph) {
 		a := g.AddVertex(1)
 		b := g.AddVertex(1)
 		c := g.AddVertex(2)
@@ -55,7 +55,7 @@ func TestPermutation(t *testing.T) {
 }
 
 func TestCompare(t *testing.T) {
-	Graph(0, func(g1 *BlissGraph) {
+	Do(0, func(g1 *Graph) {
 		a := g1.AddVertex(1)
 		b := g1.AddVertex(1)
 		c := g1.AddVertex(2)
@@ -64,7 +64,7 @@ func TestCompare(t *testing.T) {
 		g1.AddEdge(c, d)
 		g1.AddEdge(a, c)
 		g1.AddEdge(b, d)
-		Graph(0, func(g2 *BlissGraph) {
+		Do(0, func(g2 *Graph) {
 			a := g2.AddVertex(1)
 			b := g2.AddVertex(1)
 			c := g2.AddVertex(2)
@@ -80,7 +80,7 @@ func TestCompare(t *testing.T) {
 				t.Error("should have been isomorphic")
 			}
 		})
-		Graph(0, func(g2 *BlissGraph) {
+		Do(0, func(g2 *Graph) {
 			a := g2.AddVertex(1)
 			b := g2.AddVertex(1)
 			c := g2.AddVertex(2)
