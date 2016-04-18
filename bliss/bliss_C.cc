@@ -67,7 +67,7 @@ bliss_construct_and_canonize(unsigned int nodes[], int len_nodes, BlissEdge edge
 	if (len_nodes <= 0 || len_edges < 0) {
 		return 1;
 	}
-	if (nodes == NULL) {
+	if (nodes == NULL || perm == NULL) {
 		return 2;
 	}
 	if (len_edges != 0 && edges == NULL) {
