@@ -23,6 +23,17 @@ import "testing"
 
 import "reflect"
 
+
+func TestCanonize(t *testing.T) {
+	expected := []uint{5, 4, 1, 2, 3, 0}
+	nodes := []uint32{1, 1, 0, 0, 0, 0}
+	edges := []BlissEdge{{0,2},{0,3},{1,4},{1,5},{3,5},{4,2}}
+	actual := Canonize(nodes, edges)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected %v got %v", expected, actual)
+	}
+}
+
 func TestNew(t *testing.T) {
 	Do(0, func(g *Graph) {
 		a := g.AddVertex(1)

@@ -72,9 +72,15 @@ func NewMap(lenV, lenE int, vi VertexIterator, ei EdgeIterator) *Map {
 // canonized is true if the graph was already in canonical order
 // canonized is false otherwise
 func (bm *Map) CanonicalPermutation() (Vord, Eord []int, canonized bool) {
-	bg := bm.Graph()
-	defer bg.Release()
-	P := bg.CanonicalPermutation()
+	nodes := make([]uint32, 0, len(bm.V))
+	edges := make([]BlissEdge, 0, len(bm.E))
+	for i := range bm.V {
+		nodes = append(nodes, uint32(bm.V[i].Color))
+	}
+	for i := range bm.E {
+		edges = append(edges, BlissEdge{uint32(bm.E[i].Src), uint32(bm.E[i].Targ)})
+	}
+	P := Canonize(nodes, edges)
 	VP := make(perms, 0, bm.LenV)
 	EP := make(perms, 0, bm.LenE)
 	canonized = true

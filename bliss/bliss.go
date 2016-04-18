@@ -21,21 +21,44 @@ package bliss
 
 /*
 #cgo LDFLAGS: -lstdc++
-#include <stdio.h>
 #include "bliss_C.h"
-
-const unsigned int *
-canlabel(BlissGraph *graph) {
-	const unsigned int *p = bliss_find_canonical_labeling(graph, NULL, NULL, NULL);
-	return p;
-}
-
 */
 import "C"
 
-import "unsafe"
+import (
+	"fmt"
+	"reflect"
+	"unsafe"
+)
 
 type Graph C.struct_bliss_graph_struct
+
+type BlissEdge struct {
+	Src uint32
+	Targ uint32
+}
+
+func Canonize(nodes []uint32, edges []BlissEdge) (mapping []uint) {
+	perm := make([]C.uint, len(nodes))
+	nodes_hdr := (*reflect.SliceHeader)(unsafe.Pointer(&nodes))
+	edges_hdr := (*reflect.SliceHeader)(unsafe.Pointer(&edges))
+	perm_hdr := (*reflect.SliceHeader)(unsafe.Pointer(&perm))
+	err := C.bliss_construct_and_canonize(
+		(*C.uint)(unsafe.Pointer(nodes_hdr.Data)),
+		C.int(len(nodes)),
+		(*C.BlissEdge)(unsafe.Pointer(edges_hdr.Data)),
+		C.int(len(edges)),
+		(*C.uint)(unsafe.Pointer(perm_hdr.Data)),
+	);
+	if err != 0 {
+		panic(fmt.Errorf("bliss_construct_and_canonize failed error number = %v", err))
+	}
+	mapping = make([]uint, 0, len(nodes))
+	for i := 0; i < len(nodes); i++ {
+		mapping = append(mapping, uint(perm[i]))
+	}
+	return mapping
+}
 
 // A context manager which release the graph after the block
 // ends.
@@ -119,7 +142,7 @@ func (a *Graph) Iso(b *Graph) bool {
 // it as well.
 func (g *Graph) Canonical() *Graph {
 	G := (*C.struct_bliss_graph_struct)(g)
-	p := C.canlabel(G)
+	p := C.bliss_find_canonical_labeling(G, nil, nil, nil);
 	return (*Graph)(C.bliss_permute(G, p))
 }
 
@@ -137,7 +160,7 @@ func (g *Graph) CanonicalCtx(block func(*Graph)) {
 func (g *Graph) CanonicalPermutation() (mapping []uint) {
 	G := (*C.struct_bliss_graph_struct)(g)
 	N := uint(C.bliss_get_nof_vertices(G))
-	p := C.canlabel(G)
+	p := C.bliss_find_canonical_labeling(G, nil, nil, nil);
 	mapping = make([]uint, 0, N)
 	for i := uint(0); i < N; i++ {
 		ptr := (uintptr(unsafe.Pointer(p)) + uintptr(i)*4)

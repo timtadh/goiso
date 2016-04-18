@@ -46,6 +46,22 @@ typedef struct bliss_graph_struct BlissGraph;
  */
 typedef struct bliss_stats_struct BlissStats;
 
+/**
+ * represents a bliss edge
+ */
+typedef struct bliss_edge_struct BlissEdge;
+
+/**
+ * Constructs and computes the canonization of the graph given by the nodes
+ * and edges.
+ * nodes an array of node colors, len_nodes gives length
+ * edges an array of edges (src, targ) pairs, len_edges give length
+ * perm is an output param, an array of new (unsigned int) positions. aka
+ *     the new permutation of the nodes.
+ * returns 0 if successful. Another integer indicates an error.
+ */
+int bliss_construct_and_canonize(unsigned int *nodes, int len_nodes, BlissEdge *edges, int len_edges, unsigned int * perm);
+
 
 /**
  * Create a new graph instance with \a N vertices and no edges.
