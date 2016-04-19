@@ -38,9 +38,9 @@ type BlissEdge struct {
 	Targ uint32
 }
 
-// Construction and computed the canonical permutation for a digraph in one go.
-// This saves many cgo calls versus using the BlissGraph type if your goal is to
-// compute the canonical permutation of the graph.
+// Construct and compute the canonical permutation of a digraph. Saves many cgo
+// calls versus using the *Graph type if your goal is to only compute the
+// canonical permutation of the graph.
 func Canonize(nodes []uint32, edges []BlissEdge) (mapping []uint) {
 	perm := make([]C.uint, len(nodes))
 	nodes_hdr := (*reflect.SliceHeader)(unsafe.Pointer(&nodes))
