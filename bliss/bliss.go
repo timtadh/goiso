@@ -112,7 +112,7 @@ func (g *Graph) AddEdge(a, b uint) {
 //
 //     a.Canonical().Cmp(b.Canonical())
 //
-//  or
+// or
 //
 //     a.Iso(b)
 //
