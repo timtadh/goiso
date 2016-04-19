@@ -34,7 +34,7 @@ func TestCanonize(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	Do(0, func(g *Graph) {
+	Do(0, func(g *Digraph) {
 		a := g.AddVertex(1)
 		b := g.AddVertex(1)
 		c := g.AddVertex(2)
@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestPermutation(t *testing.T) {
-	Do(0, func(g *Graph) {
+	Do(0, func(g *Digraph) {
 		a := g.AddVertex(1)
 		b := g.AddVertex(1)
 		c := g.AddVertex(2)
@@ -65,7 +65,7 @@ func TestPermutation(t *testing.T) {
 }
 
 func TestCompare(t *testing.T) {
-	Do(0, func(g1 *Graph) {
+	Do(0, func(g1 *Digraph) {
 		a := g1.AddVertex(1)
 		b := g1.AddVertex(1)
 		c := g1.AddVertex(2)
@@ -74,7 +74,7 @@ func TestCompare(t *testing.T) {
 		g1.AddEdge(c, d)
 		g1.AddEdge(a, c)
 		g1.AddEdge(b, d)
-		Do(0, func(g2 *Graph) {
+		Do(0, func(g2 *Digraph) {
 			a := g2.AddVertex(1)
 			b := g2.AddVertex(1)
 			c := g2.AddVertex(2)
@@ -90,7 +90,7 @@ func TestCompare(t *testing.T) {
 				t.Error("should have been isomorphic")
 			}
 		})
-		Do(0, func(g2 *Graph) {
+		Do(0, func(g2 *Digraph) {
 			a := g2.AddVertex(1)
 			b := g2.AddVertex(1)
 			c := g2.AddVertex(2)

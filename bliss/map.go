@@ -114,9 +114,9 @@ func (m *Map) CanonicalPermutation() (Vord, Eord []int, canonized bool) {
 	return Vord, Eord, canonized
 }
 
-// Construct a BlissGraph from the Map
-func (m *Map) Graph() *Graph {
-	bg := NewGraph(0)
+// Construct a BlissDigraph from the Map
+func (m *Map) Digraph() *Digraph {
+	bg := NewDigraph(0)
 	for _, color := range m.Nodes {
 		bg.AddVertex(uint(color))
 	}

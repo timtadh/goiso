@@ -31,7 +31,7 @@ import (
 	"unsafe"
 )
 
-type Graph C.struct_bliss_graph_struct
+type Digraph C.struct_bliss_graph_struct
 
 type BlissEdge struct {
 	Src  uint32
@@ -39,7 +39,7 @@ type BlissEdge struct {
 }
 
 // Construct and compute the canonical permutation of a digraph. Saves many cgo
-// calls versus using the *Graph type if your goal is to only compute the
+// calls versus using the *Digraph type if your goal is to only compute the
 // canonical permutation of the graph.
 func Canonize(nodes []uint32, edges []BlissEdge) (mapping []uint) {
 	perm := make([]C.uint, len(nodes))
@@ -65,8 +65,8 @@ func Canonize(nodes []uint32, edges []BlissEdge) (mapping []uint) {
 
 // A context manager which release the graph after the block
 // ends.
-func Do(nodes int, block func(*Graph)) {
-	g := NewGraph(nodes)
+func Do(nodes int, block func(*Digraph)) {
+	g := NewDigraph(nodes)
 	defer g.Release()
 	block(g)
 }
@@ -74,21 +74,21 @@ func Do(nodes int, block func(*Graph)) {
 // Constructs a new bliss digraph object. Note, this
 // is a directed graph.
 // nodes = the number of nodes to add with color 0
-func NewGraph(nodes int) *Graph {
+func NewDigraph(nodes int) *Digraph {
 	n := C.uint(uint(nodes))
-	return (*Graph)(C.bliss_new(n))
+	return (*Digraph)(C.bliss_new(n))
 }
 
 // Release the graph. You need to manage the memory manually
 // as the graph lives in C land.
-func (g *Graph) Release() {
+func (g *Digraph) Release() {
 	G := (*C.struct_bliss_graph_struct)(g)
 	C.bliss_release(G)
 }
 
 // Add a new vertex of the given color to the graph.
 // The vertex id will be returned.
-func (g *Graph) AddVertex(color uint) uint {
+func (g *Digraph) AddVertex(color uint) uint {
 	c := C.uint(color)
 	G := (*C.struct_bliss_graph_struct)(g)
 	return uint(C.bliss_add_vertex(G, c))
@@ -96,7 +96,7 @@ func (g *Graph) AddVertex(color uint) uint {
 
 // Add a new edge between the two vertex ids
 // Since this is a directed graph: a -> b
-func (g *Graph) AddEdge(a, b uint) {
+func (g *Digraph) AddEdge(a, b uint) {
 	x := C.uint(a)
 	y := C.uint(b)
 	G := (*C.struct_bliss_graph_struct)(g)
@@ -118,7 +118,7 @@ func (g *Graph) AddEdge(a, b uint) {
 //
 // If you are planning the compute and store the canonical
 // labeling then the first option is better.
-func (a *Graph) Cmp(b *Graph) int {
+func (a *Digraph) Cmp(b *Digraph) int {
 	g1 := (*C.struct_bliss_graph_struct)(a)
 	g2 := (*C.struct_bliss_graph_struct)(b)
 	return int(C.bliss_cmp(g1, g2))
@@ -128,10 +128,10 @@ func (a *Graph) Cmp(b *Graph) int {
 // the canonical labeling anew each time. You can compute
 // the labeling once and use the Cmp function to compare the
 // graphs instead to save time.
-func (a *Graph) Iso(b *Graph) bool {
+func (a *Digraph) Iso(b *Digraph) bool {
 	var cmp bool
-	a.CanonicalCtx(func(g1 *Graph) {
-		b.CanonicalCtx(func(g2 *Graph) {
+	a.CanonicalCtx(func(g1 *Digraph) {
+		b.CanonicalCtx(func(g2 *Digraph) {
 			cmp = g1.Cmp(g2) == 0
 		})
 	})
@@ -139,18 +139,18 @@ func (a *Graph) Iso(b *Graph) bool {
 }
 
 // Compute the canonical labeling. This will function will
-// return a new *Graph. If you no longer need the
+// return a new *Digraph. If you no longer need the
 // original be sure to release it with. Release(). When
 // you are done with the canonical graph be sure to release
 // it as well.
-func (g *Graph) Canonical() *Graph {
+func (g *Digraph) Canonical() *Digraph {
 	G := (*C.struct_bliss_graph_struct)(g)
 	p := C.bliss_find_canonical_labeling(G, nil, nil, nil)
-	return (*Graph)(C.bliss_permute(G, p))
+	return (*Digraph)(C.bliss_permute(G, p))
 }
 
 // A context manager for Canonical graph.
-func (g *Graph) CanonicalCtx(block func(*Graph)) {
+func (g *Digraph) CanonicalCtx(block func(*Digraph)) {
 	can := g.Canonical()
 	defer can.Release()
 	block(can)
@@ -160,7 +160,7 @@ func (g *Graph) CanonicalCtx(block func(*Graph)) {
 // mapping[original-index-for-v] -> new-index-for-v
 // If you want to preserve the orginal vertex id's or know how the canonical
 // labeling actually maps to the original graph you need to use this method.
-func (g *Graph) CanonicalPermutation() (mapping []uint) {
+func (g *Digraph) CanonicalPermutation() (mapping []uint) {
 	G := (*C.struct_bliss_graph_struct)(g)
 	N := uint(C.bliss_get_nof_vertices(G))
 	p := C.bliss_find_canonical_labeling(G, nil, nil, nil)
