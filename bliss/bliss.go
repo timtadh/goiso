@@ -1,7 +1,7 @@
 package bliss
 
 /*
-  Copyright (c) 2014 Tim Henderson
+  Copyright (c) 2016 Tim Henderson
   Released under the GNU General Public License version 3.
 
   This file is part of goiso a wrapper around bliss.
@@ -34,10 +34,13 @@ import (
 type Graph C.struct_bliss_graph_struct
 
 type BlissEdge struct {
-	Src uint32
+	Src  uint32
 	Targ uint32
 }
 
+// Construction and computed the canonical permutation for a digraph in one go.
+// This saves many cgo calls versus using the BlissGraph type if your goal is to
+// compute the canonical permutation of the graph.
 func Canonize(nodes []uint32, edges []BlissEdge) (mapping []uint) {
 	perm := make([]C.uint, len(nodes))
 	nodes_hdr := (*reflect.SliceHeader)(unsafe.Pointer(&nodes))
@@ -49,7 +52,7 @@ func Canonize(nodes []uint32, edges []BlissEdge) (mapping []uint) {
 		(*C.BlissEdge)(unsafe.Pointer(edges_hdr.Data)),
 		C.int(len(edges)),
 		(*C.uint)(unsafe.Pointer(perm_hdr.Data)),
-	);
+	)
 	if err != 0 {
 		panic(fmt.Errorf("bliss_construct_and_canonize failed error number = %v", err))
 	}
@@ -68,7 +71,7 @@ func Do(nodes int, block func(*Graph)) {
 	block(g)
 }
 
-// Constructs a new bliss graph object. Note, this
+// Constructs a new bliss digraph object. Note, this
 // is a directed graph.
 // nodes = the number of nodes to add with color 0
 func NewGraph(nodes int) *Graph {
@@ -142,7 +145,7 @@ func (a *Graph) Iso(b *Graph) bool {
 // it as well.
 func (g *Graph) Canonical() *Graph {
 	G := (*C.struct_bliss_graph_struct)(g)
-	p := C.bliss_find_canonical_labeling(G, nil, nil, nil);
+	p := C.bliss_find_canonical_labeling(G, nil, nil, nil)
 	return (*Graph)(C.bliss_permute(G, p))
 }
 
@@ -160,7 +163,7 @@ func (g *Graph) CanonicalCtx(block func(*Graph)) {
 func (g *Graph) CanonicalPermutation() (mapping []uint) {
 	G := (*C.struct_bliss_graph_struct)(g)
 	N := uint(C.bliss_get_nof_vertices(G))
-	p := C.bliss_find_canonical_labeling(G, nil, nil, nil);
+	p := C.bliss_find_canonical_labeling(G, nil, nil, nil)
 	mapping = make([]uint, 0, N)
 	for i := uint(0); i < N; i++ {
 		ptr := (uintptr(unsafe.Pointer(p)) + uintptr(i)*4)

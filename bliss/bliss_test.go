@@ -1,7 +1,7 @@
 package bliss
 
 /*
-  Copyright (c) 2014 Tim Henderson
+  Copyright (c) 2016 Tim Henderson
   Released under the GNU General Public License version 3.
 
   This file is part of goiso a wrapper around bliss.
@@ -23,11 +23,10 @@ import "testing"
 
 import "reflect"
 
-
 func TestCanonize(t *testing.T) {
 	expected := []uint{5, 4, 1, 2, 3, 0}
 	nodes := []uint32{1, 1, 0, 0, 0, 0}
-	edges := []BlissEdge{{0,2},{0,3},{1,4},{1,5},{3,5},{4,2}}
+	edges := []BlissEdge{{0, 2}, {0, 3}, {1, 4}, {1, 5}, {3, 5}, {4, 2}}
 	actual := Canonize(nodes, edges)
 	if !reflect.DeepEqual(expected, actual) {
 		t.Errorf("Expected %v got %v", expected, actual)
