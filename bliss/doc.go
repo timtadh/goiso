@@ -6,11 +6,11 @@
 // isomorphism testing and canonical labeling. Bliss is the work Tommi Junttila and
 // Petteri Kaski. You should cite their papers:
 //
-// - Tommi Junttila and Petteri Kaski. Engineering an efficient canonical labeling
+//   Tommi Junttila and Petteri Kaski. Engineering an efficient canonical labeling
 //   tool for large and sparse graphs. In: Proceedings of the Ninth Workshop on
 //   Algorithm Engineering and Experiments (ALENEX07), pages 135-149, SIAM, 2007.
 //
-// - Tommi Junttila and Petteri Kaski. Conflict Propagation and Component Recursion
+//   Tommi Junttila and Petteri Kaski. Conflict Propagation and Component Recursion
 //   for Canonical Labeling. In: Proceedings of the 1st International ICST
 //   Conference on Theory and Practice of Algorithms (TAPAS 2011), Springer, 2011
 //
