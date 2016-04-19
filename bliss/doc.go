@@ -1,5 +1,3 @@
-package bliss
-
 // Computes canonical permutations (labeling) of directed labeled graphs. Useful
 // for comparing graphs and answering graph isomorphism questions. If you need
 // to know whether two graphs are equivalent this is the library for you!
@@ -26,3 +24,4 @@ package bliss
 //
 //       Copyright (c) 2006-2011 Tommi Junttila (C++ Bliss Code)
 //       Copyright (c) 2014-2016 Tim Henderson (Go Wrapper)
+package bliss
