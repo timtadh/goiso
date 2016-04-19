@@ -40,7 +40,10 @@ type BlissEdge struct {
 
 // Construct and compute the canonical permutation of a digraph. Saves many cgo
 // calls versus using the *Digraph type if your goal is to only compute the
-// canonical permutation of the graph.
+// canonical permutation of the graph. Read the returned slice as:
+//
+//     mapping[original-index-for-v] -> new-index-for-v
+//
 func Canonize(nodes []uint32, edges []BlissEdge) (mapping []uint) {
 	perm := make([]C.uint, len(nodes))
 	nodes_hdr := (*reflect.SliceHeader)(unsafe.Pointer(&nodes))

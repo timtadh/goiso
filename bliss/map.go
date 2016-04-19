@@ -74,14 +74,14 @@ func NewMap(lenV, lenE int, vi VertexIterator, ei EdgeIterator) *Map {
 // Construct the CanonicalPermutation from the Map. The map itself is
 // unchanged the permutation is given in Vord and Eord. This method uses the
 // Canonize function and does not directly construct a bliss.Digraph. If you
-// additionally want a *Digraph object use the Digraph() method.
+// additionally want a *Digraph object use the Digraph() method. Read the
+// returned variables as:
 //
-// Vord [original-index] -> new-index of vertices
+//   - Vord [original-index] -> new-index of vertices
+//   - Eord [original-index] -> new-index of edges
+//   - canonized is true if the graph was already in canonical order
+//     and false otherwise
 //
-// Eord [original-index] -> new-index of edges
-//
-// canonized is true if the graph was already in canonical order
-// and false otherwise
 func (m *Map) CanonicalPermutation() (Vord, Eord []int, canonized bool) {
 	P := Canonize(m.Nodes, m.Edges)
 	VP := make(perms, 0, m.LenV)
