@@ -56,4 +56,3 @@ func ExampleMap() {
 	fmt.Println(vord, eord)
 	// Output: [4 5 1 2 3 0] [3 0 1 2 4 5]
 }
-
