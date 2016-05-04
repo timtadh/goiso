@@ -34,7 +34,7 @@ type Graph struct {
 	Kids      [][]*Edge
 	Parents   [][]*Edge
 	Colors    []string
-	colorSet  map[string]int
+	Labels    map[string]int
 	colorFreq []int
 	closed    bool
 	canon     bool
@@ -125,7 +125,7 @@ func NewGraph(V, E int) Graph {
 		Kids:     make([][]*Edge, 0, V),
 		Parents:  make([][]*Edge, 0, V),
 		Colors:   make([]string, 0, V),
-		colorSet: make(map[string]int, V),
+		Labels: make(map[string]int, V),
 	}
 }
 
@@ -263,13 +263,13 @@ func (g *Graph) Canonical() (ng Graph, canonized bool) {
 		Kids:     make([][]*Edge, len(g.Kids)),
 		Parents:  make([][]*Edge, len(g.Parents)),
 		Colors:   make([]string, len(g.Colors)),
-		colorSet: make(map[string]int),
+		Labels: make(map[string]int),
 		closed:   true,
 		canon:    true,
 	}
 	copy(ng.Colors, g.Colors)
 	for cid, color := range ng.Colors {
-		ng.colorSet[color] = cid
+		ng.Labels[color] = cid
 	}
 	for i := range ng.Kids {
 		ng.Kids[i] = make([]*Edge, 0, 5)
@@ -345,12 +345,12 @@ func (g *Graph) ColorFrequency(color int) int {
 }
 
 func (g *Graph) addColor(label string) int {
-	if cid, has := g.colorSet[label]; has {
+	if cid, has := g.Labels[label]; has {
 		g.colorFreq[cid] += 1
 		return cid
 	}
 	cid := len(g.Colors)
-	g.colorSet[label] = cid
+	g.Labels[label] = cid
 	g.Colors = append(g.Colors, label)
 	g.colorFreq = append(g.colorFreq, 1)
 	return cid
