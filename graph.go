@@ -312,7 +312,7 @@ func (g *Graph) AddVertex(id int, label string) *Vertex {
 	v := Vertex{
 		Idx:   len(g.V),
 		Id:    id,
-		Color: g.addColor(label),
+		Color: g.AddColor(label),
 	}
 	g.V = append(g.V, v)
 	g.Kids = append(g.Kids, make([]*Edge, 0, 5))
@@ -331,7 +331,7 @@ func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 			Targ: v.Idx,
 		},
 		Idx:   len(g.E),
-		Color: g.addColor(label),
+		Color: g.AddColor(label),
 	}
 	g.E = append(g.E, e)
 	g.Kids[e.Arc.Src] = append(g.Kids[e.Arc.Src], &e)
@@ -344,7 +344,7 @@ func (g *Graph) ColorFrequency(color int) int {
 	return g.colorFreq[color]
 }
 
-func (g *Graph) addColor(label string) int {
+func (g *Graph) AddColor(label string) int {
 	if cid, has := g.Labels[label]; has {
 		g.colorFreq[cid] += 1
 		return cid
