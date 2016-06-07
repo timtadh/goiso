@@ -341,6 +341,9 @@ func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 
 // What is the frequency of a color?
 func (g *Graph) ColorFrequency(color int) int {
+	if color >= len(g.colorFreq) {
+		return 0
+	}
 	return g.colorFreq[color]
 }
 
