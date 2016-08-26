@@ -320,6 +320,16 @@ func (g *Graph) AddVertex(id int, label string) *Vertex {
 	return &v
 }
 
+func (g *Graph) HasEdge(u, v *Vertex, label string) bool {
+	color := g.AddColor(label)
+	for _, e := range g.Kids[u.Idx] {
+		if e.Color == color && e.Targ == v.Idx {
+			return true
+		}
+	}
+	return false
+}
+
 // Adds and edge. The label is the label on the edge.
 func (g *Graph) AddEdge(u, v *Vertex, label string) *Edge {
 	if g.closed {
